@@ -1,0 +1,42 @@
+mainmenu "PIX-in-the-Loop HIL Controller Configuration"
+
+source "Kconfig.zephyr"
+
+menu "Application Subsystems"
+
+config APP_GPIO
+    bool "Enable GPIO Subsystem"
+    default y
+    select GPIO
+    help
+      Enables GPIO control for discrete digital I/O pin manipulation.
+
+config APP_PWM
+    bool "Enable PWM Subsystem"
+    default y
+    select PWM
+    help
+      Enables PWM output for timed pulse-width modulation signals.
+
+config APP_SPI
+    bool "Enable SPI Subsystem"
+    default y
+    select SPI
+    select SPI_ASYNC
+    select SPI_SLAVE
+    select SPI_STM32_DMA
+    select RESET
+    help
+      Enables SPI master/slave communication for peripheral data transfer.
+      Pulls in async + slave support and STM32 DMA, plus the reset
+      controller used to recover the SPI peripheral between transfers.
+
+config APP_SHELL
+    bool "Enable Interactive Shell"
+    default y
+    select SHELL
+    help
+      Enables the Zephyr interactive shell that exposes the `ctrl`
+      command tree for host-driven hardware control.
+
+endmenu

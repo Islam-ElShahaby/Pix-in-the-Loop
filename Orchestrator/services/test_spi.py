@@ -1,12 +1,12 @@
-# services/test_spi.py
 from services.usb_serial import USB_Serial
+
 
 class SPITester:
     def __init__(self, client: USB_Serial):
         self.client = client
 
-    def transceive_byte(self, hex_val: int) -> str:
-        return self.client.send_cmd(f"SPI BUF {hex_val}")
+    def write_master(self, channel: int, hex_data: str) -> str:
+        return self.client.send_cmd(f"ctrl spi_write {channel} {hex_data}")
 
-    def send_data(self, data: str) -> str:
-        return self.client.send_cmd(f"SPI SEND {data}")
+    def slave_wait(self, channel: int, timeout_ms: int, hex_data: str) -> str:
+        return self.client.send_cmd(f"ctrl spi_slave_wait {channel} {timeout_ms} {hex_data}")

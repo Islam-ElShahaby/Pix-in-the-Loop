@@ -1,0 +1,170 @@
+/ {
+    chosen {
+        zephyr,console = &cdc_acm_uart0;
+        zephyr,shell-uart = &cdc_acm_uart0;
+    };
+
+    pwm_outputs {
+        compatible = "pwm-leds";
+        pwm_out1: pwm_out1 {
+            pwms = <&pwm1 1 PWM_MSEC(1) PWM_POLARITY_NORMAL>;
+        };
+        pwm_out2: pwm_out2 {
+            pwms = <&pwm2 1 PWM_MSEC(1) PWM_POLARITY_NORMAL>;
+        };
+        pwm_out3: pwm_out3 {
+            pwms = <&pwm3 1 PWM_MSEC(1) PWM_POLARITY_NORMAL>;
+        };
+        pwm_out4: pwm_out4 {
+            pwms = <&pwm4 1 PWM_MSEC(1) PWM_POLARITY_NORMAL>;
+        };
+    };
+
+    aliases {
+        hil-uart1 = &usart1;
+        hil-uart2 = &usart2;
+        hil-spi1 = &spi1;
+        hil-spi2 = &spi2;
+        hil-adc = &adc1;
+        
+        /* Expose each distinct timer channel for independent frequencies */
+        pwm-f1 = &pwm_out1;
+        pwm-f2 = &pwm_out2;
+        pwm-f3 = &pwm_out3;
+        pwm-f4 = &pwm_out4;
+        
+        porta = &gpioa;
+        portb = &gpiob;
+        portc = &gpioc;
+    };
+};
+
+/* --- USARTS --- */
+&usart1 {
+    status = "okay";
+    current-speed = <115200>;
+    pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
+    pinctrl-names = "default";
+};
+
+&usart2 {
+    status = "okay";
+    current-speed = <115200>;
+    pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
+    pinctrl-names = "default";
+};
+
+/* --- SPI BUSES --- */
+&spi1 {
+    status = "okay";
+    st,soft-nss;   /* Soft NSS: no physical CS/NSS pin needed */
+    pinctrl-0 = <&spi1_sck_pb3 &spi1_miso_pb4 &spi1_mosi_pb5>;
+    pinctrl-names = "default";
+    dmas = <&dma2 3 3 STM32_DMA_PERIPH_TX STM32_DMA_FIFO_FULL>,
+           <&dma2 2 3 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL>;
+    dma-names = "tx", "rx";
+};
+
+&spi2 {
+    status = "okay";
+    st,soft-nss;   /* Soft NSS: no physical CS/NSS pin needed */
+    pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
+    pinctrl-names = "default";
+    dmas = <&dma1 4 0 STM32_DMA_PERIPH_TX STM32_DMA_FIFO_FULL>,
+           <&dma1 3 0 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL>;
+    dma-names = "tx", "rx";
+};
+
+&adc1 {
+    status = "okay";
+    pinctrl-0 = <
+        &adc1_in0_pa0
+        &adc1_in1_pa1
+        &adc1_in4_pa4
+        &adc1_in5_pa5
+        &adc1_in6_pa6
+        &adc1_in7_pa7
+        &adc1_in8_pb0
+        &adc1_in9_pb1
+    >;
+    pinctrl-names = "default";
+    #address-cells = <1>;
+    #size-cells = <0>;
+
+    channel@0 { reg = <0>; zephyr,gain = "ADC_GAIN_1"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>; zephyr,resolution = <12>; };
+    channel@1 { reg = <1>; zephyr,gain = "ADC_GAIN_1"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>; zephyr,resolution = <12>; };
+    channel@4 { reg = <4>; zephyr,gain = "ADC_GAIN_1"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>; zephyr,resolution = <12>; };
+    channel@5 { reg = <5>; zephyr,gain = "ADC_GAIN_1"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>; zephyr,resolution = <12>; };
+    channel@6 { reg = <6>; zephyr,gain = "ADC_GAIN_1"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>; zephyr,resolution = <12>; };
+    channel@7 { reg = <7>; zephyr,gain = "ADC_GAIN_1"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>; zephyr,resolution = <12>; };
+    channel@8 { reg = <8>; zephyr,gain = "ADC_GAIN_1"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>; zephyr,resolution = <12>; };
+    channel@9 { reg = <9>; zephyr,gain = "ADC_GAIN_1"; zephyr,reference = "ADC_REF_INTERNAL"; zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>; zephyr,resolution = <12>; };
+};
+
+/* --- TIMERS FOR INDEPENDENT PWM ---
+ * Timer kernel clock is 84 MHz. st,prescaler = 83 divides it to a 1 MHz tick
+ * (1 us resolution), so requested periods fit the 16-bit counters (TIM1/4/10)
+ * and frequencies from ~15 Hz up to ~500 kHz are reachable. */
+&timers1 {
+    status = "okay";
+    st,prescaler = <83>;
+    pwm1: pwm {
+        status = "okay";
+        pinctrl-0 = <&tim1_ch1_pa8>;
+        pinctrl-names = "default";
+    };
+};
+
+&timers2 {
+    status = "okay";
+    st,prescaler = <83>;
+    pwm2: pwm {
+        status = "okay";
+        pinctrl-0 = <&tim2_ch1_pa15>;
+        pinctrl-names = "default";
+    };
+};
+
+/* PWM3 uses TIM10_CH1 (PB8) instead of TIM3 so that PB4 is free for SPI1
+ * and TIM3's only pin options (PA6/PA7/PB0/PB1) stay available as ADC. */
+&timers10 {
+    status = "okay";
+    st,prescaler = <83>;
+    pwm3: pwm {
+        status = "okay";
+        pinctrl-0 = <&tim10_ch1_pb8>;
+        pinctrl-names = "default";
+    };
+};
+
+&timers4 {
+    status = "okay";
+    st,prescaler = <83>;
+    pwm4: pwm {
+        status = "okay";
+        pinctrl-0 = <&tim4_ch1_pb6>;
+        pinctrl-names = "default";
+    };
+};
+
+&zephyr_udc0 {
+    status = "okay";
+    cdc_acm_uart0: cdc_acm_uart0 {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};
+
+/* I2C1 is disabled: the base board maps it to PB8/PB9, which are now used by
+ * PWM3 (TIM10_CH1 on PB8) and as a Pure GPIO (PB9). */
+&i2c1 {
+    status = "disabled";
+};
+
+/* --- DMA CONTROLLERS --- */
+&dma1 {
+    status = "okay";
+};
+
+&dma2 {
+    status = "okay";
+};

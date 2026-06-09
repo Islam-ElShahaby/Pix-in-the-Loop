@@ -51,21 +51,16 @@ To maximize the capabilities of the **STM32F401 Blackpill** while protecting cri
 | **System (Reserved)** | PA11, PA12, PA13, PA14 | Debug & USB | SWD Debugging (SWDIO/SWCLK) and USB CDC Serial connection. |
 | **USART1** | PA9 (TX), PA10 (RX) | Digital Serial | High-speed primary UART channel to the DUT. |
 | **USART2** | PA2 (TX), PA3 (RX)* | Digital Serial | Secondary UART channel to the DUT (*Shared with ADC1_IN2 / ADC1_IN3). |
-| **SPI1** | PA5 (SCK), PA6 (MISO), PA7 (MOSI)* | SPI Bus | Primary SPI bus (*Shared with ADC1_IN5 / ADC1_IN6 / ADC1_IN7). |
+| **SPI1** | PB3 (SCK), PB4 (MISO), PB5 (MOSI) | SPI Bus | Primary SPI bus (relocated to Port B so it no longer shadows ADC channels). |
 | **SPI2** | PB13 (SCK), PB14 (MISO), PB15 (MOSI) | SPI Bus | Secondary SPI bus for peripherals. |
-| **ADC1 (Dedicated)** | PA1 (IN1), PA4 (IN4), PB0 (IN8), PB1 (IN9) | Analog Input | 4 dedicated analog measurement channels (12-bit, 0-3.3V) with no protocol overlap. |
-| **ADC1 (Shared Pins)** | PA0 (IN0), PA2 (IN2), PA3 (IN3), PA5 (IN5), PA6 (IN6), PA7 (IN7) | Analog Input | Up to 6 additional channels, available if their corresponding PWM/UART/SPI functions are unused. |
-| **PWM (Independent)** | PA8 (PWM1), PA0 (PWM2)*, PB4 (PWM3), PB6 (PWM4) | Timed Output | 4 independent hardware PWM timers (*PWM2 PA0 is shared with ADC1_IN0). |
-| **Pure GPIO** | PA15, PB2, PB3, PB5, PB10, PB12, PC13, PC14, PC15 | Digital I/O | 9 dedicated digital pins for discrete output stimulation or input sensing. |
+| **ADC1** | PA0 (IN0), PA1 (IN1), PA4 (IN4), PA5 (IN5), PA6 (IN6), PA7 (IN7), PB0 (IN8), PB1 (IN9) | Analog Input | 8 dedicated analog measurement channels (12-bit, 0-3.3V). IN2/IN3 remain disabled (occupied by USART2). |
+| **PWM (Independent)** | PA8 (PWM1, TIM1), PA15 (PWM2, TIM2), PB8 (PWM3, TIM10), PB6 (PWM4, TIM4) | Timed Output | 4 independent hardware PWM timers (each on a distinct timer for independent frequencies). |
+| **Pure GPIO** | PB2, PB7, PB9, PB10, PB12, PC13, PC14, PC15 | Digital I/O | 8 dedicated digital pins for discrete output stimulation or input sensing. |
 
 > [!IMPORTANT]  
-> **Pin-Multiplexing Restrictions (Hardware Overlaps):**
+> **Pin-Multiplexing Restriction :**
+> * **PA2 (USART2 TX)** makes **ADC1_IN2** unavailable.
+> * **PA3 (USART2 RX)** makes **ADC1_IN3** unavailable.
 >
-> * Using **PA0** for **PWM2** will make **ADC1_IN0** unavailable.
-> * Using **PA2** for **UART2** will make **ADC1_IN2** unavailable.
-> * Using **PA3** for **UART2** will make **ADC1_IN3** unavailable.
-> * Using **PA5** for **SPI1** will make **ADC1_IN5** unavailable.
-> * Using **PA6** for **SPI1** will make **ADC1_IN6** unavailable.
-> * Using **PA7** for **SPI1** will make **ADC1_IN7** unavailable.
 
 ---
