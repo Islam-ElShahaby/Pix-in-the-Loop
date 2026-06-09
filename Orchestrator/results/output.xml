@@ -1,172 +1,235 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<robot generator="Robot 7.4.2 (Python 3.12.3 on linux)" generated="2026-06-09T20:54:58.382802" rpa="false" schemaversion="5">
-<suite id="s1" name="TestCases" source="/home/mrdark/zephyrproject/workspace/Pix-in-the-Loop/orchestrator/TestCases.robot">
+<robot generator="Robot 7.4.2 (Python 3.12.3 on linux)" generated="2026-06-09T23:55:50.696418" rpa="false" schemaversion="5">
+<suite id="s1" name="TestCases" source="/home/mrdark/zephyrproject/workspace/Pix-in-the-Loop/Orchestrator/TestCases.robot">
 <kw name="Initialize Hil System" owner="HILClient" type="SETUP">
 <doc>Open the serial port and wait for the HIL shell prompt.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.418541" elapsed="0.501597"/>
+<status status="PASS" start="2026-06-09T23:55:50.727482" elapsed="0.501057"/>
 </kw>
-<test id="s1-t1" name="Verify GPIO Input Reads Low When Tied To GND" line="22">
+<test id="s1-t1" name="Verify GPIO Input Reads Low When Tied To GND" line="24">
 <kw name="Read Gpio" owner="HILClient">
-<msg time="2026-06-09T20:54:58.924912" level="INFO">${resp} = GPIO VALUE: 0</msg>
+<msg time="2026-06-09T23:55:51.233224" level="INFO">${resp} = GPIO VALUE: 0</msg>
 <var>${resp}</var>
 <arg>B</arg>
 <arg>2</arg>
-<status status="PASS" start="2026-06-09T20:54:58.920798" elapsed="0.004144"/>
+<status status="PASS" start="2026-06-09T23:55:51.229173" elapsed="0.004087"/>
 </kw>
 <kw name="Should Be Equal As Strings" owner="BuiltIn">
 <arg>${resp}</arg>
 <arg>GPIO VALUE: 0</arg>
 <doc>Fails if objects are unequal after converting them to strings.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.925051" elapsed="0.000293"/>
+<status status="PASS" start="2026-06-09T23:55:51.233402" elapsed="0.000314"/>
 </kw>
 <doc>PB2 is wired to GND and must read 0.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.920341" elapsed="0.005098"/>
+<status status="PASS" start="2026-06-09T23:55:51.228724" elapsed="0.005103"/>
 </test>
-<test id="s1-t2" name="Verify GPIO Input Reads High When Tied To 3V3" line="27">
+<test id="s1-t2" name="Verify GPIO Input Reads High When Tied To 3V3" line="29">
 <kw name="Read Gpio" owner="HILClient">
-<msg time="2026-06-09T20:54:58.930096" level="INFO">${resp} = GPIO VALUE: 1</msg>
+<msg time="2026-06-09T23:55:51.238335" level="INFO">${resp} = GPIO VALUE: 1</msg>
 <var>${resp}</var>
 <arg>B</arg>
 <arg>7</arg>
-<status status="PASS" start="2026-06-09T20:54:58.925848" elapsed="0.004291"/>
+<status status="PASS" start="2026-06-09T23:55:51.234296" elapsed="0.004072"/>
 </kw>
 <kw name="Should Be Equal As Strings" owner="BuiltIn">
 <arg>${resp}</arg>
 <arg>GPIO VALUE: 1</arg>
 <doc>Fails if objects are unequal after converting them to strings.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.930305" elapsed="0.000292"/>
+<status status="PASS" start="2026-06-09T23:55:51.238497" elapsed="0.000273"/>
 </kw>
 <doc>PB7 is wired to 3.3V and must read 1.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.925594" elapsed="0.005104"/>
+<status status="PASS" start="2026-06-09T23:55:51.234015" elapsed="0.004869"/>
 </test>
-<test id="s1-t3" name="Verify GPIO Output Drive High" line="32">
+<test id="s1-t3" name="Verify GPIO Output Drive High" line="34">
 <kw name="Write Gpio" owner="HILClient">
-<msg time="2026-06-09T20:54:58.935918" level="INFO">${resp} = Queued: GPIO C13 -&gt; 1</msg>
+<msg time="2026-06-09T23:55:51.244256" level="INFO">${resp} = Queued: GPIO C13 -&gt; 1</msg>
 <var>${resp}</var>
 <arg>C</arg>
 <arg>13</arg>
 <arg>1</arg>
-<status status="PASS" start="2026-06-09T20:54:58.931084" elapsed="0.004869"/>
+<status status="PASS" start="2026-06-09T23:55:51.239272" elapsed="0.005020"/>
 </kw>
 <kw name="Should Start With" owner="BuiltIn">
 <arg>${resp}</arg>
 <arg>Queued:</arg>
 <doc>Fails if the string ``str1`` does not start with the string ``str2``.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.936097" elapsed="0.000290"/>
+<status status="PASS" start="2026-06-09T23:55:51.244486" elapsed="0.000380"/>
 </kw>
 <doc>Drive the on-board LED pin (PC13) high; assert acknowledgement.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.930850" elapsed="0.005630"/>
+<status status="PASS" start="2026-06-09T23:55:51.239036" elapsed="0.005942"/>
 </test>
-<test id="s1-t4" name="Verify GPIO Output Drive Low" line="37">
+<test id="s1-t4" name="Verify GPIO Output Drive Low" line="39">
 <kw name="Write Gpio" owner="HILClient">
-<msg time="2026-06-09T20:54:58.941679" level="INFO">${resp} = Queued: GPIO C13 -&gt; 0</msg>
+<msg time="2026-06-09T23:55:51.250389" level="INFO">${resp} = Queued: GPIO C13 -&gt; 0</msg>
 <var>${resp}</var>
 <arg>C</arg>
 <arg>13</arg>
 <arg>0</arg>
-<status status="PASS" start="2026-06-09T20:54:58.936826" elapsed="0.004915"/>
+<status status="PASS" start="2026-06-09T23:55:51.245417" elapsed="0.005020"/>
 </kw>
 <kw name="Should Start With" owner="BuiltIn">
 <arg>${resp}</arg>
 <arg>Queued:</arg>
 <doc>Fails if the string ``str1`` does not start with the string ``str2``.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.941937" elapsed="0.000289"/>
+<status status="PASS" start="2026-06-09T23:55:51.250656" elapsed="0.000305"/>
 </kw>
 <doc>Drive PC13 low; assert acknowledgement.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.936616" elapsed="0.005716"/>
+<status status="PASS" start="2026-06-09T23:55:51.245147" elapsed="0.005914"/>
 </test>
-<test id="s1-t5" name="Verify PWM Channel 1 Configuration" line="45">
+<test id="s1-t5" name="Verify PWM Channel 1 Configuration" line="47">
 <kw name="Set Pwm Duty Cycle" owner="HILClient">
-<msg time="2026-06-09T20:54:58.949134" level="INFO">${resp} = Queued: PWM ch1 -&gt; 1000 Hz, 50.0% duty</msg>
+<msg time="2026-06-09T23:55:51.257207" level="INFO">${resp} = Queued: PWM ch1 -&gt; 1000 Hz, 50.0% duty</msg>
 <var>${resp}</var>
 <arg>1</arg>
 <arg>1000</arg>
 <arg>500</arg>
-<status status="PASS" start="2026-06-09T20:54:58.942957" elapsed="0.006216"/>
+<status status="PASS" start="2026-06-09T23:55:51.251455" elapsed="0.005792"/>
 </kw>
 <kw name="Should Start With" owner="BuiltIn">
 <arg>${resp}</arg>
 <arg>Queued:</arg>
 <doc>Fails if the string ``str1`` does not start with the string ``str2``.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.949339" elapsed="0.000261"/>
+<status status="PASS" start="2026-06-09T23:55:51.257405" elapsed="0.000383"/>
 </kw>
 <doc>Set PWM channel 1 to 1 kHz at 50% duty (500 permille).</doc>
-<status status="PASS" start="2026-06-09T20:54:58.942578" elapsed="0.007139"/>
+<status status="PASS" start="2026-06-09T23:55:51.251202" elapsed="0.006735"/>
 </test>
-<test id="s1-t6" name="Verify PWM Channel 3 Configuration" line="50">
+<test id="s1-t6" name="Verify PWM Channel 3 Configuration" line="52">
 <kw name="Set Pwm Duty Cycle" owner="HILClient">
-<msg time="2026-06-09T20:54:58.956339" level="INFO">${resp} = Queued: PWM ch3 -&gt; 2000 Hz, 25.0% duty</msg>
+<msg time="2026-06-09T23:55:51.264410" level="INFO">${resp} = Queued: PWM ch3 -&gt; 2000 Hz, 25.0% duty</msg>
 <var>${resp}</var>
 <arg>3</arg>
 <arg>2000</arg>
 <arg>250</arg>
-<status status="PASS" start="2026-06-09T20:54:58.950179" elapsed="0.006199"/>
+<status status="PASS" start="2026-06-09T23:55:51.258456" elapsed="0.006023"/>
 </kw>
 <kw name="Should Start With" owner="BuiltIn">
 <arg>${resp}</arg>
 <arg>Queued:</arg>
 <doc>Fails if the string ``str1`` does not start with the string ``str2``.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.956536" elapsed="0.000310"/>
+<status status="PASS" start="2026-06-09T23:55:51.264761" elapsed="0.000446"/>
 </kw>
 <doc>Set PWM channel 3 (now TIM10/PB8) to 2 kHz at 25% duty.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.949936" elapsed="0.007024"/>
+<status status="PASS" start="2026-06-09T23:55:51.258111" elapsed="0.007231"/>
 </test>
-<test id="s1-t7" name="Verify PWM Rejects Invalid Channel" line="55">
+<test id="s1-t7" name="Verify PWM Rejects Invalid Channel" line="57">
 <kw name="Set Pwm Duty Cycle" owner="HILClient">
-<msg time="2026-06-09T20:54:58.963377" level="INFO">${resp} = Error: Invalid channel '5'. Must be 1-4.</msg>
+<msg time="2026-06-09T23:55:51.272101" level="INFO">${resp} = Error: Invalid channel '5'. Must be 1-4.</msg>
 <var>${resp}</var>
 <arg>5</arg>
 <arg>1000</arg>
 <arg>500</arg>
-<status status="PASS" start="2026-06-09T20:54:58.957465" elapsed="0.005947"/>
+<status status="PASS" start="2026-06-09T23:55:51.265787" elapsed="0.006356"/>
 </kw>
 <kw name="Should Contain" owner="BuiltIn">
 <arg>${resp}</arg>
 <arg>Invalid channel</arg>
 <doc>Fails if ``container`` does not contain ``item`` one or more times.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.963568" elapsed="0.000385"/>
+<status status="PASS" start="2026-06-09T23:55:51.272368" elapsed="0.000543"/>
 </kw>
 <doc>Channel 5 is out of range (1-4) and must be rejected.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.957120" elapsed="0.006932"/>
+<status status="PASS" start="2026-06-09T23:55:51.265492" elapsed="0.007573"/>
 </test>
-<test id="s1-t8" name="Verify SPI1 Master Write Accepted" line="64">
+<test id="s1-t8" name="Verify SPI1 Master Write Accepted" line="66">
 <kw name="Spi Write" owner="HILClient">
-<msg time="2026-06-09T20:54:58.970509" level="INFO">${resp} = Queued: SPI1 master write 'A5F0' (2 bytes)</msg>
+<msg time="2026-06-09T23:55:51.279356" level="INFO">${resp} = Queued: SPI1 master write 'A5F0' (2 bytes)</msg>
 <var>${resp}</var>
 <arg>1</arg>
 <arg>A5F0</arg>
-<status status="PASS" start="2026-06-09T20:54:58.964428" elapsed="0.006116"/>
+<status status="PASS" start="2026-06-09T23:55:51.273628" elapsed="0.005765"/>
 </kw>
 <kw name="Should Start With" owner="BuiltIn">
 <arg>${resp}</arg>
 <arg>Queued:</arg>
 <doc>Fails if the string ``str1`` does not start with the string ``str2``.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.970691" elapsed="0.000351"/>
+<status status="PASS" start="2026-06-09T23:55:51.279576" elapsed="0.000309"/>
 </kw>
 <doc>Queue a 2-byte SPI master write on channel 1.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.964190" elapsed="0.006989"/>
+<status status="PASS" start="2026-06-09T23:55:51.273300" elapsed="0.006716"/>
 </test>
-<test id="s1-t9" name="Verify SPI2 Slave Arm Accepted" line="69">
+<test id="s1-t9" name="Verify SPI2 Slave Arm Accepted" line="71">
 <kw name="Spi Slave Wait" owner="HILClient">
-<msg time="2026-06-09T20:54:58.979808" level="INFO">${resp} = Queued: SPI2 slave wait 500 ms 'DEADBEEF' (4 bytes)</msg>
+<msg time="2026-06-09T23:55:51.288762" level="INFO">${resp} = Queued: SPI2 slave wait 500 ms 'DEADBEEF' (4 bytes)</msg>
 <var>${resp}</var>
 <arg>2</arg>
 <arg>500</arg>
 <arg>DEADBEEF</arg>
-<status status="PASS" start="2026-06-09T20:54:58.971725" elapsed="0.008134"/>
+<status status="PASS" start="2026-06-09T23:55:51.280436" elapsed="0.008365"/>
 </kw>
 <kw name="Should Start With" owner="BuiltIn">
 <arg>${resp}</arg>
 <arg>Queued:</arg>
 <doc>Fails if the string ``str1`` does not start with the string ``str2``.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.980070" elapsed="0.000502"/>
+<status status="PASS" start="2026-06-09T23:55:51.288983" elapsed="0.000302"/>
 </kw>
 <doc>Arm SPI2 as slave for a short window; assert acknowledgement.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.971417" elapsed="0.009296"/>
+<status status="PASS" start="2026-06-09T23:55:51.280193" elapsed="0.009203"/>
+</test>
+<test id="s1-t10" name="Verify UART1 To UART2 Loopback" line="81">
+<kw name="Uart Send Data" owner="HILClient">
+<arg>1</arg>
+<arg>HELLO</arg>
+<status status="PASS" start="2026-06-09T23:55:51.289958" elapsed="0.005861"/>
+</kw>
+<kw name="Uart Receive Data" owner="HILClient">
+<msg time="2026-06-09T23:55:51.304535" level="INFO">${resp} = UART DATA: HELLO</msg>
+<var>${resp}</var>
+<arg>2</arg>
+<arg>5</arg>
+<arg>1000</arg>
+<status status="PASS" start="2026-06-09T23:55:51.296068" elapsed="0.008511"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${resp}</arg>
+<arg>UART DATA: HELLO</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-06-09T23:55:51.304765" elapsed="0.000295"/>
+</kw>
+<doc>Send "HELLO" out USART1 (PA9 TX); assert it arrives on USART2 RX (PA3).</doc>
+<status status="PASS" start="2026-06-09T23:55:51.289620" elapsed="0.015535"/>
+</test>
+<test id="s1-t11" name="Verify UART2 To UART1 Loopback" line="87">
+<kw name="Uart Send Data" owner="HILClient">
+<arg>2</arg>
+<arg>WORLD</arg>
+<status status="PASS" start="2026-06-09T23:55:51.305610" elapsed="0.005845"/>
+</kw>
+<kw name="Uart Receive Data" owner="HILClient">
+<msg time="2026-06-09T23:55:51.316954" level="INFO">${resp} = UART DATA: WORLD</msg>
+<var>${resp}</var>
+<arg>1</arg>
+<arg>5</arg>
+<arg>1000</arg>
+<status status="PASS" start="2026-06-09T23:55:51.311644" elapsed="0.005346"/>
+</kw>
+<kw name="Should Be Equal As Strings" owner="BuiltIn">
+<arg>${resp}</arg>
+<arg>UART DATA: WORLD</arg>
+<doc>Fails if objects are unequal after converting them to strings.</doc>
+<status status="PASS" start="2026-06-09T23:55:51.317150" elapsed="0.000280"/>
+</kw>
+<doc>Send "WORLD" out USART2 (PA2 TX); assert it arrives on USART1 RX (PA10).</doc>
+<status status="PASS" start="2026-06-09T23:55:51.305355" elapsed="0.012171"/>
+</test>
+<test id="s1-t12" name="Verify UART Rejects Invalid Channel" line="93">
+<kw name="Uart Send Data" owner="HILClient">
+<msg time="2026-06-09T23:55:51.324409" level="INFO">${resp} = Error: Invalid UART channel '3'. Must be 1 or 2.</msg>
+<var>${resp}</var>
+<arg>3</arg>
+<arg>HELLO</arg>
+<status status="PASS" start="2026-06-09T23:55:51.317967" elapsed="0.006488"/>
+</kw>
+<kw name="Should Contain" owner="BuiltIn">
+<arg>${resp}</arg>
+<arg>Invalid UART channel</arg>
+<doc>Fails if ``container`` does not contain ``item`` one or more times.</doc>
+<status status="PASS" start="2026-06-09T23:55:51.324667" elapsed="0.000444"/>
+</kw>
+<doc>Channel 3 is out of range (1-2) and must be rejected.</doc>
+<status status="PASS" start="2026-06-09T23:55:51.317669" elapsed="0.007546"/>
 </test>
 <kw name="Terminate Hil System" owner="HILClient" type="TEARDOWN">
 <doc>Close the serial connection.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.981358" elapsed="0.001368"/>
+<status status="PASS" start="2026-06-09T23:55:51.325699" elapsed="0.001275"/>
 </kw>
 <doc>Automated Hardware-in-the-Loop Validation Suite for STM32 Blackpill.
 Uses the Zephyr Shell protocol: ctrl &lt;command&gt; [args...]
@@ -175,20 +238,22 @@ Wiring assumed by this suite:
   * PB2  -&gt; GND   (reads 0)
   * PB7  -&gt; 3.3V  (reads 1)
   * SPI1 (PB3/PB4/PB5) &lt;-&gt; SPI2 (PB13/PB14/PB15) loopback
+  * USART1 &lt;-&gt; USART2 crossover: PA9 (TX1) -&gt; PA3 (RX2)
+    and PA2 (TX2) -&gt; PA10 (RX1)
 
 Firmware currently implements: gpio_set, gpio_get, pwm_set,
-spi_write, spi_slave_wait. ADC and UART shell commands are not
-yet implemented, so those suites are intentionally absent.</doc>
-<status status="PASS" start="2026-06-09T20:54:58.383647" elapsed="0.599115"/>
+spi_write, spi_slave_wait, uart_send. ADC shell commands are
+not yet implemented, so that suite is intentionally absent.</doc>
+<status status="PASS" start="2026-06-09T23:55:50.697072" elapsed="0.629948"/>
 </suite>
 <statistics>
 <total>
-<stat pass="9" fail="0" skip="0">All Tests</stat>
+<stat pass="12" fail="0" skip="0">All Tests</stat>
 </total>
 <tag>
 </tag>
 <suite>
-<stat name="TestCases" id="s1" pass="9" fail="0" skip="0">TestCases</stat>
+<stat name="TestCases" id="s1" pass="12" fail="0" skip="0">TestCases</stat>
 </suite>
 </statistics>
 <errors>

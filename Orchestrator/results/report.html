@@ -1881,22 +1881,22 @@ storage = function () {
 window.output = {};
 </script>
 <script type="text/javascript">
-window.output["suite"] = [1,2,3,4,[],[1,0,599],[],[[5,0,6,[],[1,536,5],[]],[7,0,8,[],[1,542,5],[]],[9,0,10,[],[1,547,6],[]],[11,0,12,[],[1,553,6],[]],[13,0,14,[],[1,559,7],[]],[15,0,16,[],[1,566,7],[]],[17,0,18,[],[1,573,7],[]],[19,0,20,[],[1,580,7],[]],[21,0,22,[],[1,587,9],[]]],[],[9,9,0,0]];
+window.output["suite"] = [1,2,3,4,[],[1,0,630],[],[[5,0,6,[],[1,532,5],[]],[7,0,8,[],[1,537,5],[]],[9,0,10,[],[1,542,6],[]],[11,0,12,[],[1,548,6],[]],[13,0,14,[],[1,554,7],[]],[15,0,16,[],[1,561,7],[]],[17,0,18,[],[1,568,8],[]],[19,0,20,[],[1,576,7],[]],[21,0,22,[],[1,583,9],[]],[23,0,24,[],[1,593,16],[]],[25,0,26,[],[1,608,12],[]],[27,0,28,[],[1,621,8],[]]],[],[12,12,0,0]];
 </script>
 <script type="text/javascript">
 window.output["strings"] = [];
 </script>
 <script type="text/javascript">
-window.output["strings"] = window.output["strings"].concat(["*","*TestCases","*/home/mrdark/zephyrproject/workspace/Pix-in-the-Loop/orchestrator/TestCases.robot","*../TestCases.robot","*<p>Automated Hardware-in-the-Loop Validation Suite for STM32 Blackpill. Uses the Zephyr Shell protocol: ctrl &lt;command&gt; [args...]\x3c/p>\n<p>Wiring assumed by this suite: * PB2  -&gt; GND   (reads 0) * PB7  -&gt; 3.3V  (reads 1) * SPI1 (PB3/PB4/PB5) &lt;-&gt; SPI2 (PB13/PB14/PB15) loopback\x3c/p>\n<p>Firmware currently implements: gpio_set, gpio_get, pwm_set, spi_write, spi_slave_wait. ADC and UART shell commands are not yet implemented, so those suites are intentionally absent.\x3c/p>","*Verify GPIO Input Reads Low When Tied To GND","*<p>PB2 is wired to GND and must read 0.\x3c/p>","*Verify GPIO Input Reads High When Tied To 3V3","*<p>PB7 is wired to 3.3V and must read 1.\x3c/p>","*Verify GPIO Output Drive High","*<p>Drive the on-board LED pin (PC13) high; assert acknowledgement.\x3c/p>","*Verify GPIO Output Drive Low","*<p>Drive PC13 low; assert acknowledgement.\x3c/p>","*Verify PWM Channel 1 Configuration","*<p>Set PWM channel 1 to 1 kHz at 50% duty (500 permille).\x3c/p>","*Verify PWM Channel 3 Configuration","*<p>Set PWM channel 3 (now TIM10/PB8) to 2 kHz at 25% duty.\x3c/p>","*Verify PWM Rejects Invalid Channel","*<p>Channel 5 is out of range (1-4) and must be rejected.\x3c/p>","*Verify SPI1 Master Write Accepted","*<p>Queue a 2-byte SPI master write on channel 1.\x3c/p>","*Verify SPI2 Slave Arm Accepted","*<p>Arm SPI2 as slave for a short window; assert acknowledgement.\x3c/p>"]);
+window.output["strings"] = window.output["strings"].concat(["*","*TestCases","*/home/mrdark/zephyrproject/workspace/Pix-in-the-Loop/Orchestrator/TestCases.robot","*../TestCases.robot","eNpNkmtLwzAUhr/7K95Psonr1lYR5xh0ihdQKbspioysjV0wbUKSbuzfe9I69UPh7XnO/WSkx0ntVMkcz3HPTL5jhvdE1XMb3ntUSmPJpMiZE6rCrBaO41MZzOZPcYSJZNmXFlIGWFhuQTF443qzJ4cNlxLaKKcyJYfInJE4lu4qU2XJqvy4cFd4Z6awQRB8jPp6fDTS4xdhRFWAWVuX1M96TymFhfV1hzhBOomAXhN793wDoGM4yy0G3QZeHGAcxMtfGHo4Sx9CdNJJ3E8nZ/Sdd5tuWneCkYehp6HHIXFJ069pQIpezJLpPPwX0RgiZEZZq7bcDJEml+jMX6lY65EmMTrT16gLmpb+Ik+jPxoOPA67h9FvhSn97pHVxvDKyT1EqSUvSdshCi3UynJ32qrCK70rW5PVYrUztKNWWsm2fLVjglDNjCOnKg+Q3FzDNmf5uYGFr1cphz13f9V4TmkUbZ65dvOgEwiyV/4RMEmdsTWldIHv/Ru35bgx","*Verify GPIO Input Reads Low When Tied To GND","*<p>PB2 is wired to GND and must read 0.\x3c/p>","*Verify GPIO Input Reads High When Tied To 3V3","*<p>PB7 is wired to 3.3V and must read 1.\x3c/p>","*Verify GPIO Output Drive High","*<p>Drive the on-board LED pin (PC13) high; assert acknowledgement.\x3c/p>","*Verify GPIO Output Drive Low","*<p>Drive PC13 low; assert acknowledgement.\x3c/p>","*Verify PWM Channel 1 Configuration","*<p>Set PWM channel 1 to 1 kHz at 50% duty (500 permille).\x3c/p>","*Verify PWM Channel 3 Configuration","*<p>Set PWM channel 3 (now TIM10/PB8) to 2 kHz at 25% duty.\x3c/p>","*Verify PWM Rejects Invalid Channel","*<p>Channel 5 is out of range (1-4) and must be rejected.\x3c/p>","*Verify SPI1 Master Write Accepted","*<p>Queue a 2-byte SPI master write on channel 1.\x3c/p>","*Verify SPI2 Slave Arm Accepted","*<p>Arm SPI2 as slave for a short window; assert acknowledgement.\x3c/p>","*Verify UART1 To UART2 Loopback","*<p>Send \"HELLO\" out USART1 (PA9 TX); assert it arrives on USART2 RX (PA3).\x3c/p>","*Verify UART2 To UART1 Loopback","*<p>Send \"WORLD\" out USART2 (PA2 TX); assert it arrives on USART1 RX (PA10).\x3c/p>","*Verify UART Rejects Invalid Channel","*<p>Channel 3 is out of range (1-2) and must be rejected.\x3c/p>"]);
 </script>
 <script type="text/javascript">
-window.output["stats"] = [[{"elapsed":"00:00:00","fail":0,"label":"All Tests","pass":9,"skip":0}],[],[{"elapsed":"00:00:01","fail":0,"id":"s1","label":"TestCases","name":"TestCases","pass":9,"skip":0}]];
+window.output["stats"] = [[{"elapsed":"00:00:00","fail":0,"label":"All Tests","pass":12,"skip":0}],[],[{"elapsed":"00:00:01","fail":0,"id":"s1","label":"TestCases","name":"TestCases","pass":12,"skip":0}]];
 </script>
 <script type="text/javascript">
-window.output["baseMillis"] = 1781027698384;
+window.output["baseMillis"] = 1781038550697;
 </script>
 <script type="text/javascript">
-window.output["generated"] = 602;
+window.output["generated"] = 633;
 </script>
 <script type="text/javascript">
 window.output["expand_keywords"] = null;

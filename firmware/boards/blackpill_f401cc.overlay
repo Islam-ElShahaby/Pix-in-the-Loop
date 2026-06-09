@@ -39,12 +39,19 @@
     };
 };
 
-/* --- USARTS --- */
+/* --- USARTS ---
+ * DMA-driven (async API). F401 request map (RM0368):
+ *   USART1 -> DMA2 ch4: TX stream7, RX stream5 (stream2 avoided — SPI1 RX).
+ *   USART2 -> DMA1 ch4: TX stream6, RX stream5.
+ * None of these streams collide with SPI1 (DMA2 s2/s3) or SPI2 (DMA1 s3/s4). */
 &usart1 {
     status = "okay";
     current-speed = <115200>;
     pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
     pinctrl-names = "default";
+    dmas = <&dma2 7 4 STM32_DMA_PERIPH_TX STM32_DMA_FIFO_FULL>,
+           <&dma2 5 4 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL>;
+    dma-names = "tx", "rx";
 };
 
 &usart2 {
@@ -52,6 +59,9 @@
     current-speed = <115200>;
     pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
     pinctrl-names = "default";
+    dmas = <&dma1 6 4 STM32_DMA_PERIPH_TX STM32_DMA_FIFO_FULL>,
+           <&dma1 5 4 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL>;
+    dma-names = "tx", "rx";
 };
 
 /* --- SPI BUSES --- */

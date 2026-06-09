@@ -1,3 +1,16 @@
+"""
+usb_serial — Physical serial transport for the HIL controller.
+
+This module owns the USB CDC serial connection to the Zephyr shell on the
+STM32 Blackpill. All other service modules send their commands through an
+instance of USB_Serial; nothing outside this module should open the port
+directly.
+
+The Zephyr shell echoes every command it receives and then prints a response
+line followed by its prompt. send_cmd() anchors parsing on the echo rather
+than the first line after transmission, which survives deferred log messages that interleave on the same USB CDC channel.
+"""
+
 import re
 import time
 import serial
@@ -22,6 +35,13 @@ class USB_Serial:
         self.ser = None
 
     def initialize(self) -> bool:
+        """Open the serial port and wait for the Zephyr shell prompt.
+
+        Sends a bare newline to nudge the shell into printing its prompt, then
+        waits up to 5 seconds for it to appear. Returns True on success, False
+        if the port cannot be opened or the prompt never arrives (e.g. firmware
+        not running, wrong port).
+        """
         try:
             self.ser = serial.Serial(self.port_path, self.baud_rate, timeout=self.timeout)
             self.ser.reset_input_buffer()
@@ -36,6 +56,7 @@ class USB_Serial:
             return False
 
     def close(self):
+        """Close the serial port. Safe to call even if initialize() was never called."""
         if self.ser and self.ser.is_open:
             self.ser.close()
 
@@ -44,7 +65,7 @@ class USB_Serial:
         Send an ASCII shell command and return the first meaningful response line.
 
         The response is taken from the window between this command's *echo* and the
-        following prompt. Anchoring on the echo makes parsing robust against async
+        following prompt. Anchoring on the echo rather than raw timing survives
         deferred-log output (and the prompt reprints it triggers) from earlier
         commands, which otherwise interleave on the same USB CDC channel.
         """

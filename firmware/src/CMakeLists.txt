@@ -17,3 +17,7 @@ endif()
 if(CONFIG_APP_SPI)
     add_subdirectory(spi_service)
 endif()
+
+if(CONFIG_APP_UART)
+    add_subdirectory(uart_service)
+endif()

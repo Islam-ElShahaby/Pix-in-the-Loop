@@ -9,14 +9,18 @@ config APP_GPIO
     default y
     select GPIO
     help
-      Enables GPIO control for discrete digital I/O pin manipulation.
+      Enables GPIO control over ports A, B, and C (pins 0–15 each).
+      Pin direction is configured lazily on first access, so no static
+      allocation is needed and the host can use any pin as input or output.
 
 config APP_PWM
     bool "Enable PWM Subsystem"
     default y
     select PWM
     help
-      Enables PWM output for timed pulse-width modulation signals.
+      Enables four independent PWM outputs (channels 1–4), each driven by
+      a separate hardware timer so they can operate at different frequencies
+      simultaneously. Frequency range: ~15 Hz to ~500 kHz at 1 µs resolution.
 
 config APP_SPI
     bool "Enable SPI Subsystem"
@@ -27,9 +31,24 @@ config APP_SPI
     select SPI_STM32_DMA
     select RESET
     help
-      Enables SPI master/slave communication for peripheral data transfer.
-      Pulls in async + slave support and STM32 DMA, plus the reset
-      controller used to recover the SPI peripheral between transfers.
+      Enables two independent SPI channels (SPI1 on PB3/4/5, SPI2 on
+      PB13/14/15) for master and slave-mode transfers. Each channel runs
+      in its own worker thread so both can operate concurrently. Pulls in
+      async + slave support and STM32 DMA, plus the reset controller used
+      to recover the SPI peripheral after a failed or timed-out transfer.
+
+config APP_UART
+    bool "Enable UART Subsystem"
+    default y
+    select SERIAL
+    select UART_ASYNC_API
+    select DMA
+    help
+      Enables the DUT-facing USART channels (USART1 on PA9/PA10,
+      USART2 on PA2/PA3) for serial stimulus and observation,
+      independent of the USB CDC shell port. Both TX and RX run over
+      DMA via the async UART API; RX is captured continuously into a
+      per-channel ring buffer using a double-buffered DMA scheme.
 
 config APP_SHELL
     bool "Enable Interactive Shell"

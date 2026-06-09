@@ -6,10 +6,12 @@ Documentation     Automated Hardware-in-the-Loop Validation Suite for STM32 Blac
 ...                 * PB2  -> GND   (reads 0)
 ...                 * PB7  -> 3.3V  (reads 1)
 ...                 * SPI1 (PB3/PB4/PB5) <-> SPI2 (PB13/PB14/PB15) loopback
+...                 * USART1 <-> USART2 crossover: PA9 (TX1) -> PA3 (RX2)
+...                   and PA2 (TX2) -> PA10 (RX1)
 ...
 ...               Firmware currently implements: gpio_set, gpio_get, pwm_set,
-...               spi_write, spi_slave_wait. ADC and UART shell commands are not
-...               yet implemented, so those suites are intentionally absent.
+...               spi_write, spi_slave_wait, uart_send. ADC shell commands are
+...               not yet implemented, so that suite is intentionally absent.
 Library           HILClient.py    /dev/ttyACM0    115200
 Suite Setup       Initialize Hil System
 Suite Teardown    Terminate Hil System
@@ -70,3 +72,25 @@ Verify SPI2 Slave Arm Accepted
     [Documentation]    Arm SPI2 as slave for a short window; assert acknowledgement.
     ${resp}=    Spi Slave Wait    2    500    DEADBEEF
     Should Start With    ${resp}    Queued:
+
+# ---------------------------------------------------------------------------
+# UART  — USART1 (PA9/PA10) <-> USART2 (PA2/PA3) crossover loopback.
+#         RX is captured continuously into a ring buffer, so send-then-recv
+#         across separate shell commands reliably observes the bytes.
+# ---------------------------------------------------------------------------
+Verify UART1 To UART2 Loopback
+    [Documentation]    Send "HELLO" out USART1 (PA9 TX); assert it arrives on USART2 RX (PA3).
+    Uart Send Data    1    HELLO
+    ${resp}=    Uart Receive Data    2    5    1000
+    Should Be Equal As Strings    ${resp}    UART DATA: HELLO
+
+Verify UART2 To UART1 Loopback
+    [Documentation]    Send "WORLD" out USART2 (PA2 TX); assert it arrives on USART1 RX (PA10).
+    Uart Send Data    2    WORLD
+    ${resp}=    Uart Receive Data    1    5    1000
+    Should Be Equal As Strings    ${resp}    UART DATA: WORLD
+
+Verify UART Rejects Invalid Channel
+    [Documentation]    Channel 3 is out of range (1-2) and must be rejected.
+    ${resp}=    Uart Send Data    3    HELLO
+    Should Contain    ${resp}    Invalid UART channel

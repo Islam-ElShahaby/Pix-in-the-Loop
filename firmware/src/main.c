@@ -18,6 +18,9 @@ static int verify_hardware_readiness(void)
 #ifdef CONFIG_APP_SPI
     if (verify_spi_ready()  != 0) err = -ENODEV;
 #endif
+#ifdef CONFIG_APP_UART
+    if (verify_uart_ready() != 0) err = -ENODEV;
+#endif
     return err;
 }
 

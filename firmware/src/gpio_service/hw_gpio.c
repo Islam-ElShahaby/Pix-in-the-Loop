@@ -1,3 +1,14 @@
+/*
+ * hw_gpio.c — Lazy-configured GPIO driver for the HIL controller.
+ *
+ * Pins are not pre-configured at boot. Direction (INPUT or OUTPUT) is set on
+ * the first access to each pin. This means the host can treat any available
+ * pin as either an input or an output without requiring a setup step, and the
+ * firmware never has to maintain a static pin-allocation table.
+ *
+ * Supported ports: GPIOA, GPIOB, GPIOC (all available on the STM32F401 Blackpill).
+ */
+
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/gpio.h>
 #include "hardware.h"
@@ -8,7 +19,9 @@ static const struct device *gpioa = DEVICE_DT_GET(DT_NODELABEL(gpioa));
 static const struct device *gpiob = DEVICE_DT_GET(DT_NODELABEL(gpiob));
 static const struct device *gpioc = DEVICE_DT_GET(DT_NODELABEL(gpioc));
 
-/* Tracks which pins have been lazy-configured as OUTPUT */
+/* One bit per pin. A set bit means that pin has already been configured as
+ * OUTPUT, so subsequent writes skip the gpio_pin_configure() call. Input pins
+ * are reconfigured on every read because a pin can be repurposed between calls. */
 static uint16_t gpioa_output_mask = 0;
 static uint16_t gpiob_output_mask = 0;
 static uint16_t gpioc_output_mask = 0;
@@ -41,7 +54,7 @@ void handle_gpio_set(char port, int pin, int value)
 
     uint16_t *mask = resolve_output_mask(port_dev);
 
-    /* Lazy-configure as OUTPUT on first write to this pin */
+    /* Lazy-configure as OUTPUT on first write to this pin. */
     if (mask && !(*mask & (1U << pin))) {
         int err = gpio_pin_configure(port_dev, pin, GPIO_OUTPUT);
         if (err) {
@@ -69,7 +82,7 @@ int handle_gpio_get(char port, int pin)
 
     uint16_t *mask = resolve_output_mask(port_dev);
 
-    /* If pin was not configured as OUTPUT, configure as INPUT now */
+    /* If pin was not configured as OUTPUT, configure as INPUT now. */
     if (mask && !(*mask & (1U << pin))) {
         int err = gpio_pin_configure(port_dev, pin, GPIO_INPUT);
         if (err) {
