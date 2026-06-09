@@ -1,0 +1,53 @@
+mainmenu "Multi-Feature Application Configuration"
+
+source "Kconfig.zephyr"
+
+menu "Application Subsystems"
+
+config APP_GPIO
+    bool "Enable GPIO Subsystem"
+    default y
+    select GPIO
+    help
+      Enables input/output controls and hardware pin interrupts.
+
+config APP_UART
+    bool "Enable UART Subsystem"
+    default y
+    select SERIAL
+    select RING_BUFFER
+    help
+      Enables custom UART communication handling using ring buffers.
+
+config APP_SPI
+    bool "Enable SPI Subsystem"
+    default y
+    select SPI
+    help
+      Enables SPI master engine logic for peripheral communication.
+
+config APP_ADC
+    bool "Enable ADC Subsystem"
+    default y
+    select ADC
+    help
+      Enables analog signal reading and sampling configurations.
+
+config APP_PWM
+    bool "Enable PWM Subsystem"
+    default y
+    select PWM
+    help
+      Enables Pulse Width Modulation for driving external modules.
+
+config APP_USB_SERVICE
+    bool "Enable USB CDC ACM Serial Emulation Service"
+    default n
+    select USB_DEVICE_STACK_NEXT
+    select SERIAL
+    select UART_INTERRUPT_DRIVEN
+    help
+      Compiles, configures, and launches the isolated virtual USB COM port stack
+      utilizing the modern non-deprecated USBD API framework.
+
+endmenu
