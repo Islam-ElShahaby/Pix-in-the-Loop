@@ -29,6 +29,11 @@ struct uart_channel {
      * so we copy the payload here rather than pointing at the caller's stack. */
     uint8_t      tx_buf[UART_MAX_PAYLOAD_SIZE];
     struct k_sem tx_done;
+    /* Set while handle_uart_config() is tearing down RX to reprogram the line.
+     * It tells the UART_RX_DISABLED callback to hand control back via rx_idle
+     * instead of auto re-arming RX with the old (pre-reconfigure) settings. */
+    bool         reconfiguring;
+    struct k_sem rx_idle;
 };
 
 /* Index 0 unused so channel numbers map 1:1 (USART1 -> 1, USART2 -> 2),
@@ -71,9 +76,15 @@ static void uart_async_cb(const struct device *dev, struct uart_event *evt, void
     }
 
     case UART_RX_DISABLED:
-        /* Steady state should never reach here; re-arm defensively. */
-        uc->rx_next = 1U;
-        uart_rx_enable(dev, uc->rx_buf[0], UART_RX_CHUNK, UART_RX_TIMEOUT_US);
+        if (uc->reconfiguring) {
+            /* An intentional teardown by handle_uart_config(): leave RX off and
+             * let it reprogram the line, then re-arm once the change is applied. */
+            k_sem_give(&uc->rx_idle);
+        } else {
+            /* Steady state should never reach here; re-arm defensively. */
+            uc->rx_next = 1U;
+            uart_rx_enable(dev, uc->rx_buf[0], UART_RX_CHUNK, UART_RX_TIMEOUT_US);
+        }
         break;
 
     case UART_TX_DONE:
@@ -142,6 +153,74 @@ int handle_uart_recv(int channel, uint8_t *out, size_t max_len, int timeout_ms)
     return (int)got;
 }
 
+int handle_uart_config(int channel, uint32_t baudrate, char parity, int stop_bits)
+{
+    struct uart_channel *uc = resolve_channel(channel);
+    if (!uc) {
+        LOG_ERR("Invalid UART channel %d", channel);
+        return -EINVAL;
+    }
+
+    /* Start from the live settings so data_bits/flow_ctrl are preserved and only
+     * the three requested fields change. Data bits stay at 8: with parity on, the
+     * STM32 driver maps 8 data bits onto a 9-bit word internally. */
+    struct uart_config cfg;
+    int err = uart_config_get(uc->dev, &cfg);
+    if (err) {
+        LOG_ERR("UART%d config_get failed (err %d)", channel, err);
+        return err;
+    }
+
+    switch (parity) {
+    case 'N': cfg.parity = UART_CFG_PARITY_NONE; break;
+    case 'E': cfg.parity = UART_CFG_PARITY_EVEN; break;
+    case 'O': cfg.parity = UART_CFG_PARITY_ODD;  break;
+    default:
+        LOG_ERR("UART%d invalid parity '%c' (use N/E/O)", channel, parity);
+        return -EINVAL;
+    }
+
+    switch (stop_bits) {
+    case 1: cfg.stop_bits = UART_CFG_STOP_BITS_1; break;
+    case 2: cfg.stop_bits = UART_CFG_STOP_BITS_2; break;
+    default:
+        LOG_ERR("UART%d invalid stop bits %d (use 1/2)", channel, stop_bits);
+        return -EINVAL;
+    }
+
+    cfg.baudrate = baudrate;
+
+    /* RX runs as a continuously re-armed DMA chain, so the peripheral can't be
+     * reprogrammed underneath it. Tear RX down (suppressing the callback's
+     * auto-rearm via the reconfiguring flag), apply the new line settings, then
+     * arm a fresh RX transfer. Runs on the dispatcher thread, so blocking on
+     * rx_idle is safe. */
+    uc->reconfiguring = true;
+    k_sem_reset(&uc->rx_idle);
+    uart_rx_disable(uc->dev);
+    if (k_sem_take(&uc->rx_idle, K_MSEC(UART_TX_TIMEOUT_MS)) != 0) {
+        LOG_WRN("UART%d RX disable timed out before reconfigure", channel);
+    }
+
+    err = uart_configure(uc->dev, &cfg);
+
+    uc->reconfiguring = false;
+    uc->rx_next = 1U;
+    int rx_err = uart_rx_enable(uc->dev, uc->rx_buf[0], UART_RX_CHUNK, UART_RX_TIMEOUT_US);
+    if (rx_err) {
+        LOG_ERR("UART%d RX re-enable failed after reconfigure (err %d)", channel, rx_err);
+    }
+
+    if (err) {
+        LOG_ERR("UART%d reconfigure failed (err %d)", channel, err);
+        return err;
+    }
+
+    LOG_INF("UART%d reconfigured: %u baud, parity %c, %d stop bit(s)",
+            channel, baudrate, parity, stop_bits);
+    return 0;
+}
+
 /* Arm continuous DMA RX on every channel once the UART devices are up. */
 static int uart_dma_init(void)
 {
@@ -153,6 +232,7 @@ static int uart_dma_init(void)
         }
 
         k_sem_init(&uc->tx_done, 0, 1);
+        k_sem_init(&uc->rx_idle, 0, 1);
         ring_buf_reset(uc->rx_rb);
 
         int err = uart_callback_set(uc->dev, uart_async_cb, uc);

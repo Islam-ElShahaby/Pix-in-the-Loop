@@ -37,8 +37,12 @@ void handle_pwm_set(int channel, uint32_t frequency, uint32_t duty_permille);
  * handle_uart_send: DMA TX; blocks until the transfer completes or times out.
  * handle_uart_recv: drains the DMA RX ring buffer; blocks until max_len bytes
  *   are available or timeout_ms elapses. Returns number of bytes placed in out,
- *   or negative errno on error. */
+ *   or negative errno on error.
+ * handle_uart_config: reconfigures the line at runtime. parity is 'N', 'E', or
+ *   'O'; stop_bits is 1 or 2; data bits stay at 8. Briefly disables and re-arms
+ *   the DMA RX path around the change. Returns 0 or a negative errno. */
 void handle_uart_send(int channel, const char *data, size_t len);
 int  handle_uart_recv(int channel, uint8_t *out, size_t max_len, int timeout_ms);
+int  handle_uart_config(int channel, uint32_t baudrate, char parity, int stop_bits);
 
 #endif /* CONTROLLER_HARDWARE_H */

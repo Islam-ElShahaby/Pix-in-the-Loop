@@ -18,6 +18,7 @@
  *   ctrl spi_slave_wait <ch 1-2> <timeout_ms> <hex_bytes>
  *   ctrl uart_send     <ch 1-2> <data>
  *   ctrl uart_recv     <ch 1-2> <num_bytes> <timeout_ms>
+ *   ctrl uart_cfg      <ch 1-2> <baud> <parity N|E|O> <stop 1|2>
  */
 
 #include <zephyr/kernel.h>
@@ -402,6 +403,64 @@ static int cmd_uart_recv(const struct shell *sh, size_t argc, char **argv)
     shell_print(sh, "UART DATA: %s", buf);
     return 0;
 }
+
+/* =========================================================================
+   UART CFG — ctrl uart_cfg <ch 1-2> <baud> <parity N|E|O> <stop 1|2>
+   Queues a runtime line reconfiguration (baud rate, parity, stop bits). The
+   dispatcher briefly tears down and re-arms DMA RX while it reprograms the
+   USART; the shell thread returns immediately. Data bits are fixed at 8.
+   ========================================================================= */
+static int cmd_uart_cfg(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc < 5) {
+        shell_error(sh, "Usage: ctrl uart_cfg <channel 1-2> <baud> <parity N|E|O> <stop 1|2>");
+        return -EINVAL;
+    }
+
+    long channel_val;
+    unsigned long baud_val;
+    long stop_val;
+
+    if (parse_long(argv[1], &channel_val) != 0 || channel_val < 1 || channel_val > 2) {
+        shell_error(sh, "Error: Invalid UART channel '%s'. Must be 1 or 2.", argv[1]);
+        return -EINVAL;
+    }
+    if (parse_ulong(argv[2], &baud_val) != 0 || baud_val == 0) {
+        shell_error(sh, "Error: Invalid baud rate '%s'. Must be > 0.", argv[2]);
+        return -EINVAL;
+    }
+
+    char parity = argv[3][0];
+    if (argv[3][1] != '\0' || (parity != 'N' && parity != 'E' && parity != 'O')) {
+        shell_error(sh, "Error: Invalid parity '%s'. Must be N, E, or O.", argv[3]);
+        return -EINVAL;
+    }
+
+    if (parse_long(argv[4], &stop_val) != 0 || (stop_val != 1 && stop_val != 2)) {
+        shell_error(sh, "Error: Invalid stop bits '%s'. Must be 1 or 2.", argv[4]);
+        return -EINVAL;
+    }
+
+    struct io_cmd cmd = {
+        .type = CMD_UART_CONFIG,
+        .params.uart_cfg = {
+            .channel   = (int)channel_val,
+            .baudrate  = (uint32_t)baud_val,
+            .parity    = parity,
+            .stop_bits = (int)stop_val
+        }
+    };
+
+    int err = k_msgq_put(&io_msgq, &cmd, K_NO_WAIT);
+    if (err) {
+        shell_error(sh, "Error: Command queue full");
+        return err;
+    }
+
+    shell_print(sh, "Queued: UART%d cfg -> %lu baud, parity %c, %ld stop bit(s)",
+                (int)channel_val, baud_val, parity, stop_val);
+    return 0;
+}
 #endif /* CONFIG_APP_UART */
 
 /* =========================================================================
@@ -438,6 +497,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_ctrl,
 #ifdef CONFIG_APP_UART
     SHELL_CMD_ARG(uart_send,      NULL,                "UART DMA send: <ch 1-2> <data>",                                cmd_uart_send,      3, 0),
     SHELL_CMD_ARG(uart_recv,      NULL,                "UART DMA receive: <ch 1-2> <num_bytes> <timeout_ms>",           cmd_uart_recv,      4, 0),
+    SHELL_CMD_ARG(uart_cfg,       NULL,                "UART line config: <ch 1-2> <baud> <parity N|E|O> <stop 1|2>",   cmd_uart_cfg,       5, 0),
 #endif
     SHELL_SUBCMD_SET_END
 );

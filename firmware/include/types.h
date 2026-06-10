@@ -30,6 +30,7 @@
  * CMD_PWM_SET  — handled by the io_cmd_dispatcher; calls handle_pwm_set().
  * CMD_GPIO_SET — handled by the io_cmd_dispatcher; calls handle_gpio_set().
  * CMD_UART_SEND — handled by the io_cmd_dispatcher; calls handle_uart_send().
+ * CMD_UART_CONFIG — handled by the io_cmd_dispatcher; calls handle_uart_config().
  *
  * SPI commands travel on dedicated per-channel queues (spi1_msgq / spi2_msgq)
  * and are NOT represented here because SPI transfers can block for tens of
@@ -38,7 +39,8 @@
 enum cmd_type {
     CMD_PWM_SET,
     CMD_GPIO_SET,
-    CMD_UART_SEND
+    CMD_UART_SEND,
+    CMD_UART_CONFIG
 };
 
 /*
@@ -67,6 +69,13 @@ struct io_cmd {
             char   data[UART_MAX_PAYLOAD_SIZE]; /* ASCII payload, not NUL-terminated in transit */
             size_t len;                        /* number of valid bytes in data[] */
         } uart;
+
+        struct {
+            int      channel;    /* 1 or 2 */
+            uint32_t baudrate;   /* bits per second, e.g. 9600 / 115200 */
+            char     parity;     /* 'N' (none), 'E' (even), or 'O' (odd) */
+            int      stop_bits;  /* 1 or 2 */
+        } uart_cfg;
     } params;
 };
 

@@ -67,6 +67,10 @@ void io_cmd_dispatcher(void *p1, void *p2, void *p3)
             case CMD_UART_SEND:
                 handle_uart_send(cmd.params.uart.channel, cmd.params.uart.data, cmd.params.uart.len);
                 break;
+            case CMD_UART_CONFIG:
+                handle_uart_config(cmd.params.uart_cfg.channel, cmd.params.uart_cfg.baudrate,
+                                   cmd.params.uart_cfg.parity, cmd.params.uart_cfg.stop_bits);
+                break;
 #endif
             default:
                 break;
