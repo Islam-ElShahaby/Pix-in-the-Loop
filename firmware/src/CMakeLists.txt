@@ -21,3 +21,7 @@ endif()
 if(CONFIG_APP_UART)
     add_subdirectory(uart_service)
 endif()
+
+if(CONFIG_APP_ADC)
+    add_subdirectory(adc_service)
+endif()

@@ -21,6 +21,9 @@ static int verify_hardware_readiness(void)
 #ifdef CONFIG_APP_UART
     if (verify_uart_ready() != 0) err = -ENODEV;
 #endif
+#ifdef CONFIG_APP_ADC
+    if (verify_adc_ready()  != 0) err = -ENODEV;
+#endif
     return err;
 }
 
