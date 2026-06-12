@@ -19,6 +19,7 @@
  *   ctrl uart_send     <ch 1-2> <data>
  *   ctrl uart_recv     <ch 1-2> <num_bytes> <timeout_ms>
  *   ctrl uart_cfg      <ch 1-2> <baud> <parity N|E|O> <stop 1|2>
+ *   ctrl adc_sample    
  */
 
 #include <zephyr/kernel.h>
@@ -463,6 +464,41 @@ static int cmd_uart_cfg(const struct shell *sh, size_t argc, char **argv)
 }
 #endif /* CONFIG_APP_UART */
 
+#ifdef CONFIG_APP_ADC
+/* =========================================================================
+   ADC SAMPLE — ctrl adc_sample <channel 0|1|4|5|6|7|8|9>
+   Synchronous read: executes on the shell thread and replies immediately.
+   ========================================================================= */
+static int cmd_adc_sample(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc < 1) {
+        shell_error(sh, "Usage: ctrl adc_sample <channel>");
+        return -EINVAL;
+    }
+
+    long chnl_val;
+
+    if (parse_long(argv[0], &chnl_val) != 0) {
+        shell_error(sh, "Error: Invalid channel '%s'", argv[0]);
+        return -EINVAL;
+    }
+
+    if (chnl_val < 0 || chnl_val > 9 || chnl_val == 2 || chnl_val == 3) {
+        shell_error(sh, "Error: Invalid channel '%d' (valid: 0,1,4-9)", (int)chnl_val);
+        return -EINVAL;
+    }
+
+    int val = handle_adc_sample_channel((int)chnl_val);
+    if (val < 0) {
+        shell_error(sh, "ADC sample failed (err %d)", val);
+        return val;
+    }
+
+    shell_print(sh, "ADC CH%d => %d", (int)chnl_val, val);
+    return 0;
+}
+#endif /* CONFIG_APP_ADC */
+
 /* =========================================================================
    Subcommand trees
    ========================================================================= */
@@ -498,6 +534,9 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_ctrl,
     SHELL_CMD_ARG(uart_send,      NULL,                "UART DMA send: <ch 1-2> <data>",                                cmd_uart_send,      3, 0),
     SHELL_CMD_ARG(uart_recv,      NULL,                "UART DMA receive: <ch 1-2> <num_bytes> <timeout_ms>",           cmd_uart_recv,      4, 0),
     SHELL_CMD_ARG(uart_cfg,       NULL,                "UART line config: <ch 1-2> <baud> <parity N|E|O> <stop 1|2>",   cmd_uart_cfg,       5, 0),
+#endif
+#ifdef CONFIG_APP_ADC
+    SHELL_CMD_ARG(adc_sample,     NULL,                 "ADC sample: <channel>",                                        cmd_adc_sample,     2, 0),
 #endif
     SHELL_SUBCMD_SET_END
 );

@@ -23,6 +23,7 @@ int verify_pwm_ready(void);
 int verify_gpio_ready(void);
 int verify_spi_ready(void);
 int verify_uart_ready(void);
+int verify_adc_ready(void);
 
 /* GPIO — port is 'A', 'B', or 'C'; pin is 0–15; value is 0 or 1.
  * Direction is configured lazily on first access (see hw_gpio.c). */
@@ -44,5 +45,7 @@ void handle_pwm_set(int channel, uint32_t frequency, uint32_t duty_permille);
 void handle_uart_send(int channel, const char *data, size_t len);
 int  handle_uart_recv(int channel, uint8_t *out, size_t max_len, int timeout_ms);
 int  handle_uart_config(int channel, uint32_t baudrate, char parity, int stop_bits);
+
+int handle_adc_sample_channel(int channel);
 
 #endif /* CONTROLLER_HARDWARE_H */

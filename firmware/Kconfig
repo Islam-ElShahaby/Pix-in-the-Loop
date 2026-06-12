@@ -50,6 +50,14 @@ config APP_UART
       DMA via the async UART API; RX is captured continuously into a
       per-channel ring buffer using a double-buffered DMA scheme.
 
+config APP_ADC
+    bool "Enable ADC Subsystem"
+    default y
+    select ADC
+    help
+        Enables ADC1 and exposes channels 0,1,4,5,6,7,8,9
+        for single-shot analog sampling.
+
 config APP_SHELL
     bool "Enable Interactive Shell"
     default y
