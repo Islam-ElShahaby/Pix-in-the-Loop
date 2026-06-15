@@ -82,14 +82,22 @@ struct io_cmd {
 /*
  * SPI command message posted to spi1_msgq or spi2_msgq.
  *
+ * is_config == true: Update frequency/mode based on config parameters.
  * is_slave == false: master transceive (blocking, synchronous).
  * is_slave == true:  arm as slave for up to timeout_ms before timing out.
  */
 struct spi_cmd {
-    bool    is_slave;
-    int     timeout_ms;
-    uint8_t tx_buf[SPI_MAX_PAYLOAD_SIZE];
-    size_t  len;
+    bool     is_config;
+    uint32_t frequency; // Valid if is_config == true
+    uint16_t operation; // Valid if is_config == true
+
+    bool     is_slave;
+    bool     cs_gated;   // slave only: wait for the reserved CS pin to fall before
+                         // arming, so the slave frames deterministically on the
+                         // master's software chip-select (see SPI_CS_* in hw_spi.c)
+    int      timeout_ms;
+    uint8_t  tx_buf[SPI_MAX_PAYLOAD_SIZE];
+    size_t   len;
 };
 
 #endif /* CONTROLLER_TYPES_H */

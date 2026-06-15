@@ -30,6 +30,13 @@ int verify_adc_ready(void);
 void handle_gpio_set(char port, int pin, int value);
 int  handle_gpio_get(char port, int pin); /* returns pin level (0/1) or negative errno */
 
+/* GPIO latency — drives a rising stimulus edge on out_port/out_pin and times,
+ * in firmware, how long until the requested edge appears on in_port/in_pin.
+ * edge is 'R' (rising), 'F' (falling), or 'B' (both). Returns the round-trip in
+ * microseconds, -ETIMEDOUT if no edge arrives within timeout_ms, or -errno. */
+int  handle_gpio_latency(char out_port, int out_pin, char in_port, int in_pin,
+                         int edge, int timeout_ms);
+
 /* PWM — channel 1–4; frequency in Hz; duty_permille in parts per thousand
  * (0 = always off, 1000 = always on). */
 void handle_pwm_set(int channel, uint32_t frequency, uint32_t duty_permille);
@@ -47,5 +54,16 @@ int  handle_uart_recv(int channel, uint8_t *out, size_t max_len, int timeout_ms)
 int  handle_uart_config(int channel, uint32_t baudrate, char parity, int stop_bits);
 
 int handle_adc_sample_channel(int channel);
+
+/* SPI readback — channel is 1 or 2.
+ * spi_arm_read: clears any stale completion so the next handle_spi_read() blocks
+ *   for the transfer queued after this call. The shell calls it when posting a
+ *   new transfer command.
+ * handle_spi_read: blocks until the worker finishes a transfer (or timeout_ms
+ *   elapses), then copies up to `max` received bytes into `out`. Returns the
+ *   number of bytes copied, -ETIMEDOUT, -EIO if the transfer errored, or
+ *   -EINVAL. */
+void spi_arm_read(int channel);
+int  handle_spi_read(int channel, uint8_t *out, size_t max, int timeout_ms);
 
 #endif /* CONTROLLER_HARDWARE_H */

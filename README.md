@@ -18,7 +18,7 @@ PIL decouples high-level test logic from real-time electrical stimulus. The plat
 ```mermaid
 graph TD
     subgraph Host PC [Host PC - Test Runner]
-        RF[Robot Framework Script] -->|High-level Keywords| PY[HilController.py - Serial Wrapper]
+        RF[Robot Framework Script] -->|High-level Keywords| PY[HILClient.py - Serial Wrapper]
     end
 
     subgraph HIL_Controller [HIL Controller - STM32 Blackpill]
@@ -26,7 +26,7 @@ graph TD
         Shell -->|GPIO / ADC / PWM Drivers| HW[Physical Pin Outputs/Inputs]
     end
 
-    subgraph DUT [Target MCU - Device Under Test]
+    subgraph DUT [Target MCU - ESP32-S3 VENT-CTRL persona]
         Pin_Signals[Electrical Interfaces] <-->|GPIO, Analog, PWM, UART, SPI| HW
     end
 
@@ -37,8 +37,8 @@ graph TD
 ```
 
 1. **The Test Runner (PC):** Runs Robot Framework. It parses readable `.robot` files, sends serialized ASCII commands to the Zephyr HIL Controller, monitors return signals, asserts expected behaviors, and compiles a comprehensive HTML log/report.
-2. **The HIL Controller (Zephyr RTOS + Blackpill):** Acts as a smart hardware-to-software I/O bridge. It runs Zephyr's interactive **Shell Subsystem** over **USB CDC (Serial)**. It takes parameterized ASCII commands (e.g., `hil gpio_set A 8 1`), executes them directly using bare-metal HAL/drivers, and responds back immediately.
-3. **The Target MCU (Device Under Test - DUT):** The system undergoing testing. The DUT is completely oblivious to the testing framework; it simply reacts to physical electrical signals (analog, digital, PWM, serial) provided or measured by the HIL Controller.
+2. **The HIL Controller (Zephyr RTOS + Blackpill):** Acts as a smart hardware-to-software I/O bridge. It runs Zephyr's interactive **Shell Subsystem** over **USB CDC (Serial)**. It takes parameterized ASCII commands (e.g., `ctrl gpio_set A 5 1`), executes them directly using bare-metal HAL/drivers, and responds back immediately.
+3. **The Target MCU (Device Under Test - DUT):** The system undergoing testing. The DUT simply reacts to physical electrical signals (analog, digital, PWM, serial) provided or measured by the HIL Controller. In this project it is an **ESP32-S3** running the *VENT-CTRL* ventilation-controller persona — see [`DUT/`](DUT/README.md).
 
 ---
 
@@ -64,3 +64,55 @@ To maximize the capabilities of the **STM32F401 Blackpill** while protecting cri
 >
 
 ---
+
+## Repository Layout
+
+| Path | Role | Docs |
+| :--- | :--- | :--- |
+| [`firmware/`](firmware/) | **HIL Controller** — Zephyr firmware on the STM32F401 Blackpill; drives & measures the DUT via a `ctrl` shell over USB CDC | [README](firmware/README.md) · [architecture](firmware/docs/architecture.md) |
+| [`Orchestrator/`](Orchestrator/) | **Host test runner** — Robot Framework suites + the `HILClient.py` keyword library | [README](Orchestrator/README.md) · [wiring](Orchestrator/wiring_dut.md) |
+| [`DUT/`](DUT/) | **Target persona** — ESP32-S3 "VENT-CTRL" device under test (Zephyr) | [README](DUT/README.md) |
+
+---
+
+## Getting Started
+
+Prerequisites: a Zephyr workspace with its venv + SDK, and Robot Framework on the
+host (`pip install robotframework pyserial`).
+
+```bash
+# 1. Flash the HIL controller (STM32F401 Blackpill)
+cd firmware && west build -b blackpill_f401cc . -p auto && west flash
+
+# 2. Flash the DUT persona (ESP32-S3 DevKitC)
+cd ../DUT && west build -b esp32s3_devkitc/esp32s3/procpu . -p auto && west flash
+
+# 3. Wire the two boards per Orchestrator/wiring_dut.md, then run a suite
+cd ../Orchestrator && PYTHONPATH=. robot --outputdir results IntegrationScenarios.robot
+```
+
+Open `Orchestrator/results/report.html` for the color-coded results.
+
+---
+
+## Test Scenarios
+
+[`IntegrationScenarios.robot`](Orchestrator/IntegrationScenarios.robot) drives the
+ESP32-S3 persona through multi-peripheral, real-world behaviours:
+
+1. **Overheating motor emergency shutdown** — the bench raises a thermistor voltage; the DUT asserts a Fault line and cuts the motor PWM.
+2. **Intrusion detection** — the bench toggles a Tamper input; the DUT latches a relay and sends an alert over the command link.
+3. **Remote sensor telemetry** — the bench streams `TEMP:n`; the DUT drives the motor PWM proportionally (read back through an RC-filtered ADC).
+4. **Boot / Run / Sleep state machine** — the bench wakes the DUT (button) and later sleeps it (command), checking the heartbeat and outputs in each phase.
+
+…plus a `PING`→`PONG` command-link liveness check. See the
+[Orchestrator README](Orchestrator/README.md) for how to run them.
+
+---
+
+## Documentation
+
+- **[Testbench firmware](firmware/README.md)** — the `ctrl` command tree, build & flash · **[architecture deep-dive](firmware/docs/architecture.md)**
+- **[Orchestrator](Orchestrator/README.md)** — running the suites & the keyword library · **[wiring guide](Orchestrator/docs/wiring_dut.md)**
+- **[DUT persona](DUT/README.md)** — the ESP32-S3 "VENT-CTRL" behaviour and pin map
+- **[License](LICENSE)** — MIT

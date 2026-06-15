@@ -24,7 +24,9 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
+#include <zephyr/drivers/spi.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "threads.h"
 #include "hardware.h"
@@ -180,6 +182,68 @@ static int cmd_gpio_get(const struct shell *sh, size_t argc, char **argv)
     shell_print(sh, "GPIO VALUE: %d", val);
     return 0;
 }
+
+/* =========================================================================
+   GPIO LATENCY — ctrl gpio_latency <out_port> <out_pin> <in_port> <in_pin>
+                                    <edge R|F|B> <timeout_ms>
+   Drives a rising edge on out and times, in firmware, how long until the
+   requested edge appears on in. Synchronous: the measurement is firmware-timed,
+   so it is immune to USB/shell round-trip jitter. Replies with the result.
+   ========================================================================= */
+static int cmd_gpio_latency(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc < 7) {
+        shell_error(sh, "Usage: ctrl gpio_latency <out_port> <out_pin> <in_port> <in_pin> <edge R|F|B> <timeout_ms>");
+        return -EINVAL;
+    }
+
+    long out_pin_val, in_pin_val, timeout_val;
+    char out_port = argv[1][0];
+    char in_port  = argv[3][0];
+    char edge     = argv[5][0];
+
+    if (argv[1][1] != '\0' || (out_port != 'A' && out_port != 'B' && out_port != 'C' &&
+                               out_port != 'a' && out_port != 'b' && out_port != 'c')) {
+        shell_error(sh, "Error: Invalid out port '%s'. Must be A, B, or C.", argv[1]);
+        return -EINVAL;
+    }
+    if (parse_long(argv[2], &out_pin_val) != 0 || out_pin_val < 0 || out_pin_val > 15) {
+        shell_error(sh, "Error: Invalid out pin '%s'. Must be 0-15.", argv[2]);
+        return -EINVAL;
+    }
+    if (argv[3][1] != '\0' || (in_port != 'A' && in_port != 'B' && in_port != 'C' &&
+                               in_port != 'a' && in_port != 'b' && in_port != 'c')) {
+        shell_error(sh, "Error: Invalid in port '%s'. Must be A, B, or C.", argv[3]);
+        return -EINVAL;
+    }
+    if (parse_long(argv[4], &in_pin_val) != 0 || in_pin_val < 0 || in_pin_val > 15) {
+        shell_error(sh, "Error: Invalid in pin '%s'. Must be 0-15.", argv[4]);
+        return -EINVAL;
+    }
+    if (argv[5][1] != '\0' || (edge != 'R' && edge != 'F' && edge != 'B' &&
+                               edge != 'r' && edge != 'f' && edge != 'b')) {
+        shell_error(sh, "Error: Invalid edge '%s'. Must be R, F, or B.", argv[5]);
+        return -EINVAL;
+    }
+    if (parse_long(argv[6], &timeout_val) != 0 || timeout_val < 0) {
+        shell_error(sh, "Error: Invalid timeout '%s'. Must be >= 0.", argv[6]);
+        return -EINVAL;
+    }
+
+    int us = handle_gpio_latency(out_port, (int)out_pin_val, in_port, (int)in_pin_val,
+                                 edge, (int)timeout_val);
+    if (us == -ETIMEDOUT) {
+        shell_print(sh, "LATENCY: TIMEOUT");
+        return 0;
+    }
+    if (us < 0) {
+        shell_error(sh, "ERROR: LATENCY_FAILED (err %d)", us);
+        return us;
+    }
+
+    shell_print(sh, "LATENCY US: %d", us);
+    return 0;
+}
 #endif /* CONFIG_APP_GPIO */
 
 #ifdef CONFIG_APP_SPI
@@ -191,6 +255,12 @@ static int cmd_gpio_get(const struct shell *sh, size_t argc, char **argv)
  * enqueue logic — the only difference is the struct spi_cmd they carry. */
 static int post_spi_cmd(const struct shell *sh, int channel, struct spi_cmd *cmd)
 {
+    /* Clear any stale completion so a following spi_read waits for THIS transfer.
+     * Config updates do not produce a completion, so they are left alone. */
+    if (!cmd->is_config) {
+        spi_arm_read(channel);
+    }
+
     struct k_msgq *queue = (channel == 1) ? &spi1_msgq : &spi2_msgq;
     int err = k_msgq_put(queue, cmd, K_NO_WAIT);
     if (err) {
@@ -314,6 +384,112 @@ static int cmd_spi_slave_wait(const struct shell *sh, size_t argc, char **argv)
     }
     return 0;
 }
+
+/* =========================================================================
+   SPI CFG — ctrl spi_cfg <ch 1-2> <freq_hz> <cpol 0|1> <cpha 0|1> <msb|lsb>
+   Queues a configuration update. The SPI worker thread updates its internal
+   state and uses these settings for subsequent transfers.
+   ========================================================================= */
+static int cmd_spi_cfg(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc < 6) {
+        shell_error(sh, "Usage: ctrl spi_cfg <channel 1-2> <freq_hz> <cpol 0|1> <cpha 0|1> <msb|lsb>");
+        return -EINVAL;
+    }
+
+    long channel_val;
+    unsigned long freq_val;
+    long cpol_val, cpha_val;
+
+    if (parse_long(argv[1], &channel_val) != 0 || channel_val < 1 || channel_val > 2) {
+        shell_error(sh, "Error: Invalid SPI channel '%s'. Must be 1 or 2.", argv[1]);
+        return -EINVAL;
+    }
+    if (parse_ulong(argv[2], &freq_val) != 0 || freq_val == 0) {
+        shell_error(sh, "Error: Invalid frequency '%s'. Must be > 0.", argv[2]);
+        return -EINVAL;
+    }
+    if (parse_long(argv[3], &cpol_val) != 0 || (cpol_val != 0 && cpol_val != 1)) {
+        shell_error(sh, "Error: Invalid cpol '%s'. Must be 0 or 1.", argv[3]);
+        return -EINVAL;
+    }
+    if (parse_long(argv[4], &cpha_val) != 0 || (cpha_val != 0 && cpha_val != 1)) {
+        shell_error(sh, "Error: Invalid cpha '%s'. Must be 0 or 1.", argv[4]);
+        return -EINVAL;
+    }
+
+    uint16_t op_flags = SPI_WORD_SET(8);
+    if (cpol_val) op_flags |= SPI_MODE_CPOL;
+    if (cpha_val) op_flags |= SPI_MODE_CPHA;
+
+    if (strcmp(argv[5], "msb") == 0) {
+        op_flags |= SPI_TRANSFER_MSB;
+    } else if (strcmp(argv[5], "lsb") == 0) {
+        op_flags |= SPI_TRANSFER_LSB;
+    } else {
+        shell_error(sh, "Error: Invalid bit order '%s'. Must be msb or lsb.", argv[5]);
+        return -EINVAL;
+    }
+
+    struct spi_cmd cmd = {
+        .is_config = true,
+        .frequency = (uint32_t)freq_val,
+        .operation = op_flags
+    };
+
+    int channel = (int)channel_val;
+    if (post_spi_cmd(sh, channel, &cmd) == 0) {
+        shell_print(sh, "Queued: SPI%d cfg -> %lu Hz, cpol=%ld, cpha=%ld, %s",
+                    channel, freq_val, cpol_val, cpha_val, argv[5]);
+    }
+    return 0;
+}
+
+/* =========================================================================
+   SPI READ — ctrl spi_read <ch 1-2> <timeout_ms>
+   Synchronous: blocks the shell thread until the channel's worker finishes a
+   transfer (or timeout_ms elapses), then prints the bytes the peer clocked in
+   as an uppercase hex string. Pair it with a preceding spi_write / spi_slave_wait
+   on the same channel; post_spi_cmd() arms the readback so this waits for that
+   specific transfer.
+   ========================================================================= */
+static int cmd_spi_read(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc < 3) {
+        shell_error(sh, "Usage: ctrl spi_read <channel 1-2> <timeout_ms>");
+        return -EINVAL;
+    }
+
+    long channel_val, timeout_val;
+    if (parse_long(argv[1], &channel_val) != 0 || channel_val < 1 || channel_val > 2) {
+        shell_error(sh, "Error: Invalid SPI channel '%s'. Must be 1 or 2.", argv[1]);
+        return -EINVAL;
+    }
+    if (parse_long(argv[2], &timeout_val) != 0 || timeout_val < 0) {
+        shell_error(sh, "Error: Invalid timeout '%s'. Must be >= 0.", argv[2]);
+        return -EINVAL;
+    }
+
+    uint8_t rx[SPI_MAX_PAYLOAD_SIZE];
+    int n = handle_spi_read((int)channel_val, rx, sizeof(rx), (int)timeout_val);
+    if (n == -ETIMEDOUT) {
+        shell_print(sh, "SPI RX: TIMEOUT");
+        return 0;
+    }
+    if (n < 0) {
+        shell_error(sh, "ERROR: SPI_READ_FAILED (err %d)", n);
+        return n;
+    }
+
+    /* Render as uppercase hex with no separators (matches spi_write input). */
+    char hex[2 * SPI_MAX_PAYLOAD_SIZE + 1];
+    for (int i = 0; i < n; i++) {
+        snprintf(&hex[2 * i], 3, "%02X", rx[i]);
+    }
+    hex[2 * n] = '\0';
+    shell_print(sh, "SPI RX: %s", hex);
+    return 0;
+}
 #endif /* CONFIG_APP_SPI */
 
 #ifdef CONFIG_APP_UART
@@ -358,6 +534,68 @@ static int cmd_uart_send(const struct shell *sh, size_t argc, char **argv)
     }
 
     shell_print(sh, "Queued: UART%d send '%s' (%u bytes)", (int)channel_val, data, (uint32_t)len);
+    return 0;
+}
+
+/* =========================================================================
+   UART SEND HEX — ctrl uart_send_hex <ch 1-2> <hex_bytes>
+   Like uart_send but the payload is an even-length hex string, so arbitrary
+   bytes (including 0x00 and non-printable values) can be transmitted. Used to
+   inject malformed/binary frames for the DUT's framing/error-recovery tests.
+   ========================================================================= */
+static int cmd_uart_send_hex(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc < 3) {
+        shell_error(sh, "Usage: ctrl uart_send_hex <channel 1-2> <hex_bytes e.g. 00FF7E>");
+        return -EINVAL;
+    }
+
+    long channel_val;
+    if (parse_long(argv[1], &channel_val) != 0 || channel_val < 1 || channel_val > 2) {
+        shell_error(sh, "Error: Invalid UART channel '%s'. Must be 1 or 2.", argv[1]);
+        return -EINVAL;
+    }
+
+    char *hex_str = argv[2];
+    size_t hex_len = strlen(hex_str);
+    if (hex_len == 0 || hex_len % 2 != 0) {
+        shell_error(sh, "Error: Hex data must be a non-empty even-length string.");
+        return -EINVAL;
+    }
+
+    size_t nbytes = hex_len / 2;
+    if (nbytes >= UART_MAX_PAYLOAD_SIZE) {
+        shell_error(sh, "Error: Payload exceeds max %d bytes.", UART_MAX_PAYLOAD_SIZE - 1);
+        return -EINVAL;
+    }
+
+    struct io_cmd cmd = {
+        .type = CMD_UART_SEND,
+        .params.uart = {
+            .channel = (int)channel_val,
+            .len     = nbytes
+        }
+    };
+
+    for (size_t i = 0; i < nbytes; i++) {
+        char byte_chars[3] = { hex_str[2 * i], hex_str[2 * i + 1], '\0' };
+        char *endptr;
+        unsigned long val = strtoul(byte_chars, &endptr, 16);
+        if (endptr == byte_chars || *endptr != '\0') {
+            shell_error(sh, "Error: Invalid hex at byte %zu.", i);
+            return -EINVAL;
+        }
+        cmd.params.uart.data[i] = (char)val;
+    }
+
+    int err = k_msgq_put(&io_msgq, &cmd, K_NO_WAIT);
+    if (err) {
+        shell_error(sh, "Error: Command queue full");
+        return err;
+    }
+
+    shell_print(sh, "Queued: UART%d send_hex '%s' (%u bytes)",
+                (int)channel_val, hex_str, (uint32_t)nbytes);
     return 0;
 }
 
@@ -471,15 +709,15 @@ static int cmd_uart_cfg(const struct shell *sh, size_t argc, char **argv)
    ========================================================================= */
 static int cmd_adc_sample(const struct shell *sh, size_t argc, char **argv)
 {
-    if (argc < 1) {
+    if (argc < 2) {
         shell_error(sh, "Usage: ctrl adc_sample <channel>");
         return -EINVAL;
     }
 
     long chnl_val;
 
-    if (parse_long(argv[0], &chnl_val) != 0) {
-        shell_error(sh, "Error: Invalid channel '%s'", argv[0]);
+    if (parse_long(argv[1], &chnl_val) != 0) {
+        shell_error(sh, "Error: Invalid channel '%s'", argv[1]);
         return -EINVAL;
     }
 
@@ -525,13 +763,17 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_ctrl,
 #ifdef CONFIG_APP_GPIO
     SHELL_CMD_ARG(gpio_set,       &sub_gpio_set_ports, "Set GPIO output: <port A|B|C> <pin 0-15> <0|1>",                NULL,               3, 0),
     SHELL_CMD_ARG(gpio_get,       &sub_gpio_get_ports, "Read GPIO input: <port A|B|C> <pin 0-15>",                      NULL,               2, 0),
+    SHELL_CMD_ARG(gpio_latency,   NULL,                "GPIO latency: <out_port> <out_pin> <in_port> <in_pin> <edge R|F|B> <timeout_ms>", cmd_gpio_latency, 7, 0),
 #endif
 #ifdef CONFIG_APP_SPI
     SHELL_CMD_ARG(spi_write,      NULL,                "SPI master write: <ch 1-2> <hex_bytes>",                        cmd_spi_write,      3, 0),
     SHELL_CMD_ARG(spi_slave_wait, NULL,                "SPI slave transceive: <ch 1-2> <timeout_ms> <hex_bytes>",       cmd_spi_slave_wait, 4, 0),
+    SHELL_CMD_ARG(spi_cfg,        NULL,                "SPI line config: <ch 1-2> <freq_hz> <cpol 0|1> <cpha 0|1> <msb|lsb>", cmd_spi_cfg, 6, 0),
+    SHELL_CMD_ARG(spi_read,       NULL,                "SPI read last RX: <ch 1-2> <timeout_ms>",                       cmd_spi_read,       3, 0),
 #endif
 #ifdef CONFIG_APP_UART
     SHELL_CMD_ARG(uart_send,      NULL,                "UART DMA send: <ch 1-2> <data>",                                cmd_uart_send,      3, 0),
+    SHELL_CMD_ARG(uart_send_hex,  NULL,                "UART DMA send raw hex: <ch 1-2> <hex_bytes>",                   cmd_uart_send_hex,  3, 0),
     SHELL_CMD_ARG(uart_recv,      NULL,                "UART DMA receive: <ch 1-2> <num_bytes> <timeout_ms>",           cmd_uart_recv,      4, 0),
     SHELL_CMD_ARG(uart_cfg,       NULL,                "UART line config: <ch 1-2> <baud> <parity N|E|O> <stop 1|2>",   cmd_uart_cfg,       5, 0),
 #endif

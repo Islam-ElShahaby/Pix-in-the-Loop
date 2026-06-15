@@ -1,0 +1,108 @@
+#include <zephyr/dt-bindings/pwm/pwm.h>
+#include <zephyr/dt-bindings/pinctrl/esp32s3-pinctrl.h>
+
+/ {
+	chosen {
+		/* Keep console + logging OFF uart1's pins (GPIO43/44), which carry the
+		 * bench command link, by routing them to the built-in USB-Serial-JTAG
+		 * (the DevKitC "USB" port) instead of uart0. */
+		zephyr,console = &usb_serial;
+		zephyr,shell-uart = &usb_serial;
+	};
+
+	zephyr,user {
+		/* GPIO4 = ADC1 channel 3 on the ESP32-S3 (channel N -> GPIO N+1). */
+		io-channels = <&adc0 3>;
+	};
+
+	aliases {
+		uart-cmd = &uart1;
+		uart-peer = &uart2;
+		pwm-motor = &pwm_ch0;
+		adc-thermistor = "/zephyr,user";
+	};
+
+	pwm_outputs {
+		compatible = "pwm-leds";
+		pwm_ch0: pwm_ch0 {
+			pwms = <&ledc0 0 PWM_MSEC(1) PWM_POLARITY_NORMAL>;
+		};
+	};
+};
+
+&pinctrl {
+	uart1_default: uart1_default {
+		group1 {
+			pinmux = <UART1_TX_GPIO17>;
+			output-high;
+		};
+		group2 {
+			pinmux = <UART1_RX_GPIO18>;
+			bias-pull-up;
+		};
+	};
+
+	uart2_dut: uart2_dut {
+		group1 {
+			pinmux = <UART2_TX_GPIO8>;
+			output-high;
+		};
+		group2 {
+			pinmux = <UART2_RX_GPIO9>;
+			bias-pull-up;
+		};
+	};
+
+	ledc_dut: ledc_dut {
+		group1 {
+			pinmux = <LEDC_CH0_GPIO14>;
+		};
+	};
+};
+
+&uart1 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart1_default>;
+	pinctrl-names = "default";
+};
+
+&uart2 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart2_dut>;
+	pinctrl-names = "default";
+};
+
+&ledc0 {
+	status = "okay";
+	pinctrl-0 = <&ledc_dut>;
+	pinctrl-names = "default";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel0@0 {
+		reg = <0>;
+		timer = <0>;
+	};
+};
+
+&adc0 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	adc1_ch3: channel@3 {
+		reg = <3>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <0>;
+		zephyr,resolution = <12>;
+	};
+};
+
+/* Built-in USB-Serial-JTAG: console + log sink, so the bench command link on
+ * uart1 (GPIO43/44) stays clean. View DUT logs on the DevKitC "USB" port. */
+&usb_serial {
+	status = "okay";
+};

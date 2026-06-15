@@ -35,6 +35,19 @@ class UARTTester:
         """
         return self.client.send_cmd(f"ctrl uart_send {channel} {data}")
 
+    def send_hex(self, channel: int, hex_data: str) -> str:
+        """Transmit arbitrary raw bytes given as a compact hex string.
+
+        channel:  1 or 2
+        hex_data: even-length hex string with no separators, e.g. "007E00FF".
+
+        Unlike send_data (ASCII only), this can emit 0x00 and other non-printable
+        bytes, so it is used to inject malformed/binary frames for the DUT's
+        framing/error-recovery tests. Returns the firmware acknowledgement, e.g.
+        "Queued: UART2 send_hex '007E00FF' (4 bytes)".
+        """
+        return self.client.send_cmd(f"ctrl uart_send_hex {channel} {hex_data}")
+
     def recv_data(self, channel: int, num_bytes: int, timeout_ms: int) -> str:
         """Read bytes captured by the DMA RX path on a USART channel.
 

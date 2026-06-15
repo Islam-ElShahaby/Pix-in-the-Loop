@@ -46,3 +46,30 @@ class SPITester:
         "Queued: SPI2 slave wait 500 ms 'DEADBEEF' (4 bytes)".
         """
         return self.client.send_cmd(f"ctrl spi_slave_wait {channel} {timeout_ms} {hex_data}")
+
+    def configure(self, channel: int, freq_hz: int, cpol: int, cpha: int,
+                  bit_order: str = "msb") -> str:
+        """Update a SPI channel's clock and mode for subsequent transfers.
+
+        channel:   1 or 2
+        freq_hz:   bus clock in Hz (master mode)
+        cpol:      clock polarity, 0 or 1
+        cpha:      clock phase, 0 or 1   (cpol/cpha = the SPI mode matrix)
+        bit_order: 'msb' or 'lsb' first
+
+        Returns the firmware acknowledgement, e.g.
+        "Queued: SPI1 cfg -> 1000000 Hz, cpol=0, cpha=1, msb".
+        """
+        return self.client.send_cmd(
+            f"ctrl spi_cfg {channel} {freq_hz} {cpol} {cpha} {bit_order}"
+        )
+
+    def read_result(self, channel: int, timeout_ms: int = 500) -> str:
+        """Return the bytes the peer clocked in during the last transfer.
+
+        Pair this with a preceding write_master() / slave_wait() on the same
+        channel: the firmware arms the readback when the transfer is queued, so
+        this blocks until that specific transfer completes (or timeout_ms).
+        Returns "SPI RX: <HEX>" (uppercase, no separators) or "SPI RX: TIMEOUT".
+        """
+        return self.client.send_cmd(f"ctrl spi_read {channel} {timeout_ms}")

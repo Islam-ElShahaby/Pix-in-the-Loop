@@ -20,6 +20,7 @@ from services.test_adc import ADCTester
 from services.test_pwm import PWMTester
 from services.test_spi import SPITester
 from services.test_uart import UARTTester
+from services.test_latency import LatencyTester
 
 
 class HILClient:
@@ -36,6 +37,7 @@ class HILClient:
         self.pwm  = PWMTester(self.client)
         self.spi  = SPITester(self.client)
         self.uart = UARTTester(self.client)
+        self.latency = LatencyTester(self.client)
 
     def initialize_hil_system(self):
         """Open the serial port and wait for the HIL shell prompt.
@@ -126,6 +128,28 @@ class HILClient:
         """
         return self.spi.slave_wait(int(channel), int(timeout_ms), hex_data)
 
+    def spi_configure(self, channel, freq_hz, cpol, cpha, bit_order="msb"):
+        """Set a SPI channel's clock and mode (the CPOL/CPHA matrix).
+
+        channel:   1 or 2
+        freq_hz:   bus clock in Hz
+        cpol:      0 or 1   (clock polarity)
+        cpha:      0 or 1   (clock phase)
+        bit_order: 'msb' or 'lsb'
+
+        Returns the firmware acknowledgement, e.g.
+        "Queued: SPI1 cfg -> 1000000 Hz, cpol=0, cpha=1, msb".
+        """
+        return self.spi.configure(int(channel), int(freq_hz), int(cpol), int(cpha), bit_order)
+
+    def spi_read_result(self, channel, timeout_ms=500):
+        """Return the bytes the peer clocked in during the last SPI transfer.
+
+        Pair with a preceding Spi Write / Spi Slave Wait on the same channel.
+        Returns "SPI RX: <HEX>" (uppercase, no separators) or "SPI RX: TIMEOUT".
+        """
+        return self.spi.read_result(int(channel), int(timeout_ms))
+
     # --- UART ---
 
     def uart_send_data(self, channel, data):
@@ -153,3 +177,53 @@ class HILClient:
         or a shorter string if fewer than num_bytes arrived before the timeout.
         """
         return self.uart.recv_data(int(channel), int(num_bytes), int(timeout_ms))
+
+    def uart_set_config(self, channel, baud, parity="N", stop_bits=1):
+        """Reconfigure a USART channel's line settings at runtime.
+
+        channel:   1 or 2
+        baud:      baud rate in bits per second (e.g. 9600, 115200)
+        parity:    'N' (none), 'E' (even), or 'O' (odd)
+        stop_bits: 1 or 2  (data bits are fixed at 8)
+
+        Used by the error-injection tests to deliberately mismatch the line
+        against the DUT. Returns the firmware acknowledgement, e.g.
+        "Queued: UART2 cfg -> 9600 baud, parity E, 1 stop bit(s)".
+        """
+        return self.uart.set_config(int(channel), int(baud), parity, int(stop_bits))
+
+    def uart_send_hex(self, channel, hex_data):
+        """Transmit arbitrary raw bytes (hex string) over a USART channel.
+
+        channel:  1 or 2
+        hex_data: even-length hex string, e.g. "007E00FF". Can carry 0x00 and
+                  other non-printable bytes, so it is used to inject malformed
+                  frames for the DUT's framing/error-recovery tests.
+
+        Returns the firmware acknowledgement, e.g.
+        "Queued: UART2 send_hex '007E00FF' (4 bytes)".
+        """
+        return self.uart.send_hex(int(channel), hex_data)
+
+    # --- Latency ---
+
+    def measure_gpio_latency(self, out_port, out_pin, in_port, in_pin,
+                             edge="R", timeout_ms=100):
+        """Measure edge-response latency, returning the raw firmware line.
+
+        Drives a rising stimulus edge on out_port/out_pin and times (in firmware)
+        how long until `edge` ('R'/'F'/'B') appears on in_port/in_pin. Returns
+        "LATENCY US: <n>" or "LATENCY: TIMEOUT".
+        """
+        return self.latency.measure(out_port, int(out_pin), in_port, int(in_pin),
+                                    edge, int(timeout_ms))
+
+    def measure_gpio_latency_us(self, out_port, out_pin, in_port, in_pin,
+                                edge="R", timeout_ms=100):
+        """Measure edge-response latency and return microseconds as an integer.
+
+        Returns -1 on timeout (no response edge), so suites can assert
+        numerically, e.g. `Should Be True  0 < ${us} < 50`.
+        """
+        return self.latency.measure_us(out_port, int(out_pin), in_port, int(in_pin),
+                                       edge, int(timeout_ms))

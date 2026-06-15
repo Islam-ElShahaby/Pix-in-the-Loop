@@ -2,6 +2,7 @@
 #include <zephyr/drivers/spi.h>
 #include <zephyr/drivers/reset.h>
 #include <zephyr/dt-bindings/reset/stm32f2_4_7_reset.h>
+#include <string.h>
 #include "threads.h"
 #include "hardware.h"
 
@@ -40,6 +41,68 @@ static const struct spi_worker_config spi2_cfg = {
     .reset_dev = DEVICE_DT_GET(DT_NODELABEL(rctl)),
     .reset_id  = STM32_RESET(APB1, 14),
 };
+
+/* Per-channel transfer result, captured so the host can read back the bytes the
+ * peer clocked in. The worker writes the slot and signals `done` when a transfer
+ * finishes; handle_spi_read() (shell thread) waits on `done` and copies it out.
+ * The semaphores are statically initialised so a reader can never race the
+ * worker's first-time setup. */
+static K_SEM_DEFINE(spi1_done_sem, 0, 1);
+static K_SEM_DEFINE(spi2_done_sem, 0, 1);
+
+struct spi_result {
+    struct k_sem *done;
+    uint8_t       rx[SPI_MAX_PAYLOAD_SIZE];
+    size_t        len;
+    bool          ok;   /* false if the transfer errored/timed out */
+};
+
+static struct spi_result spi_results[2] = {
+    { .done = &spi1_done_sem },
+    { .done = &spi2_done_sem },
+};
+
+/* Record a finished transfer and wake any waiting reader. ok==false leaves the
+ * payload empty so handle_spi_read() reports the error. */
+static void spi_publish_result(int channel, const uint8_t *rx, size_t len, bool ok)
+{
+    struct spi_result *res = &spi_results[channel - 1];
+    if (ok && rx && len <= SPI_MAX_PAYLOAD_SIZE) {
+        memcpy(res->rx, rx, len);
+        res->len = len;
+    } else {
+        res->len = 0;
+    }
+    res->ok = ok;
+    k_sem_give(res->done);
+}
+
+/* Clear a stale completion so the next handle_spi_read() blocks for the transfer
+ * that follows this call (used by the shell when a new transfer is queued). */
+void spi_arm_read(int channel)
+{
+    if (channel < 1 || channel > 2) {
+        return;
+    }
+    k_sem_reset(spi_results[channel - 1].done);
+}
+
+int handle_spi_read(int channel, uint8_t *out, size_t max, int timeout_ms)
+{
+    if (channel < 1 || channel > 2) {
+        return -EINVAL;
+    }
+    struct spi_result *res = &spi_results[channel - 1];
+    if (k_sem_take(res->done, K_MSEC(timeout_ms)) != 0) {
+        return -ETIMEDOUT;
+    }
+    if (!res->ok) {
+        return -EIO;
+    }
+    size_t n = MIN(res->len, max);
+    memcpy(out, res->rx, n);
+    return (int)n;
+}
 
 /* Perform a clean peripheral reset after a failed/aborted async SPI transaction.
  * Must be called AFTER spi_release so the driver mutex is not held during reset.
@@ -82,6 +145,7 @@ void spi_worker_entry(void *p1, void *p2, void *p3)
         .frequency = SPI_BUS_FREQUENCY,
         .slave     = 0,
     };
+    uint16_t op_flags = SPI_WORD_SET(8) | SPI_TRANSFER_MSB;
 
     struct k_poll_signal async_sig;
     k_poll_signal_init(&async_sig);
@@ -90,6 +154,14 @@ void spi_worker_entry(void *p1, void *p2, void *p3)
 
     while (1) {
         if (k_msgq_get(cfg->queue, &cmd, K_FOREVER) != 0) {
+            continue;
+        }
+
+        if (cmd.is_config) {
+            config.frequency = cmd.frequency;
+            op_flags = cmd.operation;
+            LOG_INF("SPI%d config updated: freq=%u Hz, op_flags=0x%04x",
+                    cfg->channel, config.frequency, op_flags);
             continue;
         }
 
@@ -106,7 +178,7 @@ void spi_worker_entry(void *p1, void *p2, void *p3)
         struct spi_buf_set tx_bufs = { .buffers = &tx, .count = 1 };
         struct spi_buf_set rx_bufs = { .buffers = &rx, .count = 1 };
 
-        config.operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB |
+        config.operation = op_flags |
                            (cmd.is_slave ? SPI_OP_MODE_SLAVE : SPI_OP_MODE_MASTER);
 
         if (cmd.is_slave) {
@@ -135,23 +207,29 @@ void spi_worker_entry(void *p1, void *p2, void *p3)
                  * SPI SR/CR registers without needing to touch them directly */
                 spi_peripheral_reset(cfg);
 
+                spi_publish_result(cfg->channel, NULL, 0, false);
+
             } else if (err) {
                 LOG_ERR("SPI%d k_poll error (err %d)", cfg->channel, err);
                 spi_release(cfg->dev, &config);
+                spi_publish_result(cfg->channel, NULL, 0, false);
             } else {
                 LOG_INF("SPI%d slave transceive complete", cfg->channel);
                 LOG_HEXDUMP_INF(cmd.tx_buf, cmd.len, "Sent");
                 LOG_HEXDUMP_INF(rx_buf,     cmd.len, "Recv");
+                spi_publish_result(cfg->channel, rx_buf, cmd.len, true);
             }
 
         } else {
             int err = spi_transceive(cfg->dev, &config, &tx_bufs, &rx_bufs);
             if (err) {
                 LOG_ERR("SPI%d master transceive failed (err %d)", cfg->channel, err);
+                spi_publish_result(cfg->channel, NULL, 0, false);
             } else {
                 LOG_INF("SPI%d master transceive complete", cfg->channel);
                 LOG_HEXDUMP_INF(cmd.tx_buf, cmd.len, "Sent");
                 LOG_HEXDUMP_INF(rx_buf,     cmd.len, "Recv");
+                spi_publish_result(cfg->channel, rx_buf, cmd.len, true);
             }
         }
     }
