@@ -1,4 +1,4 @@
-# Pix-in-the-Loop (PIL)
+# Pix-in-the-Loop
 
 [![Zephyr RTOS](https://img.shields.io/badge/RTOS-Zephyr-blue.svg)](https://zephyrproject.org/)
 [![Robot Framework](https://img.shields.io/badge/Testing-Robot%20Framework-brightgreen.svg)](https://robotframework.org/)
