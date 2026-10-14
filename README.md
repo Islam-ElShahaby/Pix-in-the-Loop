@@ -5,7 +5,7 @@
 [![Hardware](https://img.shields.io/badge/Hardware-STM32F401%20Blackpill-orange.svg)](https://www.st.com/en/microcontrollers-microprocessors/stm32f401.html)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Pix-in-the-Loop (PIL)** is a high-performance, modular Hardware-in-the-Loop (HIL) testing platform. It bridges the gap between high-level test automation on a PC and real-time physical stimulation on embedded targets.
+**Pix-in-the-Loop ** is a high-performance, modular Hardware-in-the-Loop (HIL) testing platform. It bridges the gap between high-level test automation on a PC and real-time physical stimulation on embedded targets.
 
 By pairing the highly readable, keyword-driven **Robot Framework** on the host PC with a deterministic **Zephyr RTOS** controller running on an **STM32F401 Blackpill**, PIL delivers a flexible, robust, and cost-effective test environment. This architecture allows developers and QA teams to run complex hardware integration and validation suites with automated, color-coded HTML report generation.
 
